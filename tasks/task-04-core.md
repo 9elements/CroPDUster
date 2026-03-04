@@ -1,6 +1,6 @@
 # Task 04 — Application Core Modules
 
-## Status: ⏳ Pending
+## Status: ✅ Done
 
 ## Objective
 Create all non-web application modules: config constants, ekv storage layer,
@@ -81,11 +81,26 @@ let temp_c = 27.0 - (voltage - 0.706) / 0.001721;
 ```
 
 ## Checklist
-- [ ] Create `application/src/config.rs`
-- [ ] Create `application/src/storage.rs`
-- [ ] Create `application/src/auth.rs`
-- [ ] Create `application/src/gpio.rs`
-- [ ] Create `application/src/sensors.rs`
+- [x] Create `application/src/config.rs`
+- [x] Create `application/src/storage.rs`
+- [x] Create `application/src/auth.rs`
+- [x] Create `application/src/gpio.rs`
+- [x] Create `application/src/sensors.rs`
 
 ## Log
-<!-- Agent fills this in -->
+
+All five modules created and `cargo check --package pdu-rp-application` passes.
+
+- `config.rs`: compile-time constants for flash layout, pin assignments, PDU sizing
+- `storage.rs`: `PduFlash` ekv flash adapter, `PduDatabase` type alias using `embassy-sync 0.6.x`
+  aliased as `embassy_sync_ekv` (needed to resolve version conflict with ekv 1.0), `init_database`,
+  key helpers, `seed_defaults`, `hash_password`
+- `auth.rs`: `AuthUser`, `AuthError`, `AdminUser`, `NotAdmin` — all implementing picoserve
+  `FromRequestParts<AppState>` and `IntoResponse`
+- `gpio.rs`: `GpioCommand`, `GPIO_SIGNAL`, `GPIO_STATES`, `gpio_task` with 8 `Output<'static>` pins
+- `sensors.rs`: `SensorData`, `SENSOR_DATA`, `sensor_task` reading RP2040 internal ADC temperature sensor
+- `web/mod.rs`: minimal `AppState` stub (expanded to full implementation in task-05)
+- `main.rs`: module declarations added; pre-existing API bugs fixed (`Spi::new` Irqs binding,
+  `watchdog.feed` Duration argument)
+- `Cargo.toml`: added `base64 = "0.22"`, `embassy-sync-ekv` alias, fixed `cortex-m` features
+  (removed `critical-section-single-core` which conflicted with embassy-rp's CS impl)

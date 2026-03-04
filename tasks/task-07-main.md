@@ -1,6 +1,6 @@
 # Task 07 — main.rs Rewrite + CLAUDE.md Update
 
-## Status: ⏳ Pending
+## Status: ✅ Done
 
 ## Objective
 Replace the monolithic `application/src/main.rs` with a lean orchestrator that
@@ -68,12 +68,33 @@ embassy_rp::bind_interrupts!(struct Irqs {
 - Remove Makefile references
 
 ## Checklist
-- [ ] Rewrite `application/src/main.rs`
-- [ ] Add `mod` declarations for all new modules
-- [ ] Wire factory reset GPIO check
-- [ ] Wire ekv database init with format-on-corruption fallback
-- [ ] Wire all tasks
-- [ ] Update `CLAUDE.md`
+- [x] Rewrite `application/src/main.rs`
+- [x] Add `mod` declarations for all new modules
+- [x] Wire factory reset GPIO check
+- [x] Wire ekv database init with format-on-corruption fallback
+- [x] Wire all tasks
+- [x] Update `CLAUDE.md`
 
 ## Log
-<!-- Agent fills this in -->
+
+`application/src/main.rs` rewritten. All 14 init steps implemented per spec:
+1. `embassy_rp::init` — HAL init
+2. Factory reset check on PIN_26 (pulled up; held low at boot triggers format+seed)
+3. Async Flash + ekv database init via `init_database` (DMA_CH2)
+4–6. 8 GPIO output pins + `gpio_task` spawn
+7–8. W5500 SPI0 (DMA_CH0 TX, DMA_CH1 RX) + ethernet/net task spawns
+9. Watchdog 8 s
+10. DHCP wait loop (feeds watchdog while waiting)
+11. ADC sensor task spawn (internal temp sensor)
+12. `App.build_app()` — stateless picoserve router
+13. 4× `web_task` spawns
+14. LED blink + main watchdog-feed loop
+
+Notable fixes applied during this task:
+- `bind_interrupts!`: DMA_IRQ_0 maps multiple handlers (`DMA_CH0`, `DMA_CH1`, `DMA_CH2`) on one line
+- `Spi::new` takes 8 args: `(spi, clk, mosi, miso, tx_dma, rx_dma, irq, config)`
+- `Flash::new` async: `(flash, dma_ch, irq)` — 3 args
+- `spawner.spawn(task_fn(...).unwrap())` pattern (task macro returns `Result<SpawnToken, SpawnError>`)
+- `#![recursion_limit = "256"]` to handle `TaskPool` layout depth
+- `RoscRng::next_u32()` / `next_u64()` are inherent methods — no `rand_core::RngCore` import needed
+- Workspace `Cargo.toml` `cortex-m` feature corrected from `"critical-section"` (invalid) to `"inline-asm"` only

@@ -1,19 +1,607 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Form Demo</title>
-    </head>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PDU Controller</title>
+<style>
+:root{
+  --bg:#1a1a2e;--surface:#16213e;--card:#0f3460;--accent:#e94560;
+  --on:#4ade80;--off:#6b7280;--text:#e2e8f0;--muted:#94a3b8;
+  --radius:10px;--transition:0.2s ease;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;padding:16px}
+a,button{cursor:pointer}
+/* ── Modal ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px;
+  width:min(360px,92vw);box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.modal h2{margin-bottom:18px;font-size:1.25rem;color:var(--text)}
+.modal label{display:block;margin-bottom:4px;font-size:.85rem;color:var(--muted)}
+.modal input{width:100%;padding:10px 12px;background:var(--card);border:1px solid #334155;
+  border-radius:6px;color:var(--text);font-size:.95rem;margin-bottom:14px}
+.modal input:focus{outline:none;border-color:var(--accent)}
+.modal .btn-primary{width:100%;margin-top:4px}
+.hidden{display:none!important}
+/* ── Buttons ── */
+.btn{padding:8px 16px;border:none;border-radius:6px;font-size:.9rem;
+  font-weight:600;transition:opacity var(--transition),transform var(--transition)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:not(:disabled):hover{opacity:.85}
+.btn:not(:disabled):active{transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-secondary{background:#334155;color:var(--text)}
+.btn-danger{background:#dc2626;color:#fff}
+/* ── Header ── */
+header{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;flex-wrap:wrap;gap:8px}
+header h1{font-size:1.3rem;color:var(--text)}
+#status-bar{font-size:.8rem;color:var(--muted)}
+/* ── Sections ── */
+.section{background:var(--surface);border-radius:var(--radius);padding:18px;margin-bottom:16px}
+.section-title{font-size:1rem;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
+/* ── Relay grid ── */
+.relay-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.relay-card{background:var(--card);border-radius:var(--radius);padding:14px;
+  display:flex;flex-direction:column;gap:8px}
+.relay-name{font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.relay-toggle{padding:10px;font-size:.9rem;border-radius:6px;border:none;
+  font-weight:700;transition:background var(--transition),color var(--transition)}
+.relay-toggle.on{background:var(--on);color:#052e16}
+.relay-toggle.off{background:var(--off);color:#1f2937}
+.relay-toggle:disabled{opacity:.35;cursor:not-allowed}
+.relay-current{font-size:.75rem;color:var(--muted)}
+/* ── Sensors ── */
+.sensor-bar{display:flex;gap:20px;flex-wrap:wrap}
+.sensor{font-size:.95rem}
+.sensor span{color:var(--text);font-weight:600}
+/* ── Admin accordion ── */
+.accordion-header{display:flex;justify-content:space-between;align-items:center;
+  cursor:pointer;user-select:none}
+.accordion-header:hover{color:var(--text)}
+.accordion-body{margin-top:16px}
+.form-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.form-row label{font-size:.85rem;color:var(--muted);min-width:80px}
+.form-row input[type=text],.form-row input[type=password]{
+  flex:1;padding:7px 10px;background:var(--card);border:1px solid #334155;
+  border-radius:6px;color:var(--text);font-size:.9rem}
+.form-row input:focus{outline:none;border-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:10px}
+th{text-align:left;padding:6px 8px;color:var(--muted);border-bottom:1px solid #334155}
+td{padding:6px 8px;border-bottom:1px solid #1e293b}
+td input[type=text]{background:transparent;border:none;color:var(--text);
+  font-size:.85rem;width:100%;outline:none}
+td input[type=checkbox]{accent-color:var(--accent)}
+.progress-wrap{margin-top:10px;display:none}
+.progress-wrap.active{display:block}
+progress{width:100%;height:10px;border-radius:5px;border:none}
+progress::-webkit-progress-bar{background:#334155;border-radius:5px}
+progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
+.msg{padding:8px 12px;border-radius:6px;font-size:.85rem;margin-top:8px;display:none}
+.msg.active{display:block}
+.msg.ok{background:#052e16;color:var(--on);border:1px solid var(--on)}
+.msg.err{background:#450a0a;color:#fca5a5;border:1px solid #dc2626}
+</style>
+</head>
+<body>
 
-    <body>
-        <form
-            method="post"
-            style="display: flex; flex-flow: column nowrap; align-items: center"
-        >
-            <label>a: <input name="a" type="number" /></label>
-            <label>b: <input name="b" type="text" /></label>
-            <input type="submit" />
-        </form>
-    </body>
+<!-- ══ Login modal ══════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="login-modal">
+  <div class="modal">
+    <h2>PDU Login</h2>
+    <label>Username</label>
+    <input type="text" id="login-user" autocomplete="username" placeholder="admin"/>
+    <label>Password</label>
+    <input type="password" id="login-pass" autocomplete="current-password"/>
+    <div class="msg" id="login-err"></div>
+    <button class="btn btn-primary" id="login-btn" onclick="doLogin()">Sign in</button>
+  </div>
+</div>
+
+<!-- ══ First-login password change modal ════════════════════════ -->
+<div class="modal-backdrop hidden" id="firstlogin-modal">
+  <div class="modal">
+    <h2>Set New Password</h2>
+    <p style="font-size:.85rem;color:var(--muted);margin-bottom:14px">
+      Please change the default password before continuing.
+    </p>
+    <label>New password</label>
+    <input type="password" id="fl-new" autocomplete="new-password"/>
+    <label>Confirm password</label>
+    <input type="password" id="fl-confirm" autocomplete="new-password"/>
+    <div class="msg" id="fl-err"></div>
+    <button class="btn btn-primary" onclick="doFirstLogin()">Set Password</button>
+  </div>
+</div>
+
+<!-- ══ Main UI ═══════════════════════════════════════════════════ -->
+<div id="app" class="hidden">
+  <header>
+    <h1>PDU Controller</h1>
+    <div id="status-bar">v<span id="sb-ver">-</span></div>
+  </header>
+
+  <!-- Relays -->
+  <div class="section">
+    <div class="section-title">Relays</div>
+    <div class="relay-grid" id="relay-grid">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- Sensors -->
+  <div class="section">
+    <div class="section-title">Sensors</div>
+    <div class="sensor-bar" id="sensor-bar">
+      <div class="sensor">🌡 <span id="s-temp">—</span> °C</div>
+      <div class="sensor">⚡ <span id="s-volt">—</span> V</div>
+    </div>
+  </div>
+
+  <!-- Admin (admin-only) -->
+  <div class="section hidden" id="admin-section">
+    <div class="accordion-header" onclick="toggleAdmin()">
+      <span class="section-title" style="margin:0">Admin Panel</span>
+      <span id="admin-caret">▶</span>
+    </div>
+    <div class="accordion-body hidden" id="admin-body">
+
+      <!-- Change password -->
+      <div style="margin-bottom:20px">
+        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Change My Password</div>
+        <div class="form-row">
+          <label>Old</label>
+          <input type="password" id="cp-old"/>
+        </div>
+        <div class="form-row">
+          <label>New</label>
+          <input type="password" id="cp-new"/>
+        </div>
+        <button class="btn btn-secondary" onclick="doChangePassword()">Update</button>
+        <div class="msg" id="cp-msg"></div>
+      </div>
+
+      <!-- Port names -->
+      <div style="margin-bottom:20px">
+        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Port Names</div>
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th></th></tr></thead>
+          <tbody id="port-names-body"><!-- populated by JS --></tbody>
+        </table>
+      </div>
+
+      <!-- User management -->
+      <div style="margin-bottom:20px">
+        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Users</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">
+          New user:
+        </div>
+        <div class="form-row">
+          <input type="text" id="nu-user" placeholder="username"/>
+          <input type="password" id="nu-pass" placeholder="password"/>
+        </div>
+        <div class="form-row" id="nu-ports-row" style="flex-wrap:wrap;gap:6px">
+          <!-- port checkboxes populated by JS -->
+        </div>
+        <div class="form-row">
+          <label><input type="checkbox" id="nu-admin"/> Admin</label>
+        </div>
+        <button class="btn btn-secondary" onclick="doCreateUser()">Create User</button>
+        <div class="msg" id="nu-msg"></div>
+      </div>
+
+      <!-- Firmware update -->
+      <div style="margin-bottom:20px">
+        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Firmware Update</div>
+        <input type="file" id="fw-file" accept=".bin,.uf2" style="color:var(--muted);font-size:.85rem"/>
+        <button class="btn btn-secondary" style="margin-top:8px" onclick="doFirmwareUpload()">Upload</button>
+        <div class="progress-wrap" id="fw-progress-wrap">
+          <progress id="fw-progress" value="0" max="100"></progress>
+        </div>
+        <div class="msg" id="fw-msg"></div>
+      </div>
+
+      <!-- Factory reset -->
+      <div>
+        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Factory Reset</div>
+        <button class="btn btn-danger" onclick="doFactoryReset()">Reset to Defaults</button>
+        <div class="msg" id="fr-msg"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// Credential storage (sessionStorage — cleared on tab close)
+// ═══════════════════════════════════════════════════════════════════
+const SESSION_KEY = 'pdu_creds'; // base64 "user:pass"
+
+function getCreds() { return sessionStorage.getItem(SESSION_KEY); }
+function setCreds(b64) { sessionStorage.setItem(SESSION_KEY, b64); }
+function clearCreds() { sessionStorage.removeItem(SESSION_KEY); }
+
+function authHeader() {
+  const c = getCreds();
+  return c ? { 'Authorization': 'Basic ' + c } : {};
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// API helpers
+// ═══════════════════════════════════════════════════════════════════
+async function api(method, path, body) {
+  const opts = { method, headers: { ...authHeader() } };
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const r = await fetch(path, opts);
+  if (r.status === 401) { handle401(); throw new Error('401'); }
+  return r;
+}
+
+function handle401() {
+  clearCreds();
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-modal').classList.remove('hidden');
+  showMsg('login-err', 'Session expired. Please log in again.', false);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Message helpers
+// ═══════════════════════════════════════════════════════════════════
+function showMsg(id, text, ok) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg active ' + (ok ? 'ok' : 'err');
+  setTimeout(() => el.classList.remove('active'), 5000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Login
+// ═══════════════════════════════════════════════════════════════════
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if (!u || !p) { showMsg('login-err', 'Enter username and password.', false); return; }
+
+  const b64 = btoa(u + ':' + p);
+  setCreds(b64);
+
+  try {
+    const r = await fetch('/api/status', { headers: { 'Authorization': 'Basic ' + b64 } });
+    if (r.status === 401) {
+      clearCreds();
+      showMsg('login-err', 'Invalid credentials.', false);
+      return;
+    }
+    const data = await r.json();
+    document.getElementById('login-modal').classList.add('hidden');
+    if (data.first_login) {
+      document.getElementById('firstlogin-modal').classList.remove('hidden');
+    } else {
+      initApp(data);
+    }
+  } catch(e) {
+    showMsg('login-err', 'Connection error.', false);
+  }
+}
+
+// Enter key on login form
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// First-login password change
+// ═══════════════════════════════════════════════════════════════════
+async function doFirstLogin() {
+  const np = document.getElementById('fl-new').value;
+  const cp = document.getElementById('fl-confirm').value;
+  if (!np) { showMsg('fl-err', 'Enter a new password.', false); return; }
+  if (np !== cp) { showMsg('fl-err', 'Passwords do not match.', false); return; }
+
+  // We need the current (old) password — it is still in sessionStorage creds
+  const creds = atob(getCreds() || '');
+  const old = creds.split(':').slice(1).join(':');
+
+  try {
+    const r = await api('POST', '/api/admin/password', { old, new: np });
+    if (!r.ok) { showMsg('fl-err', 'Failed to set password.', false); return; }
+
+    // Update stored credentials
+    const user = creds.split(':')[0];
+    setCreds(btoa(user + ':' + np));
+
+    document.getElementById('firstlogin-modal').classList.add('hidden');
+    const status = await (await api('GET', '/api/status')).json();
+    initApp(status);
+  } catch(e) {
+    if (e.message !== '401') showMsg('fl-err', 'Error: ' + e.message, false);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// App initialisation
+// ═══════════════════════════════════════════════════════════════════
+async function initApp(status) {
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('sb-ver').textContent = status.version || '?';
+
+  // Determine if admin — try fetching a port name (admin endpoints are protected)
+  let isAdmin = false;
+  try {
+    const r = await api('GET', '/api/port/0/name');
+    if (r.ok) {
+      // Any user can GET port name; admin detection via status is not available
+      // so we'll optimistically show admin panel and handle 403 silently
+      isAdmin = true; // show admin panel; actual endpoints enforce ACL server-side
+    }
+  } catch(_) {}
+
+  buildRelayGrid();
+  loadRelays();
+  if (isAdmin) {
+    document.getElementById('admin-section').classList.remove('hidden');
+    buildPortNamesTable();
+    buildNewUserPortCheckboxes();
+  }
+
+  loadSensors();
+  setInterval(loadSensors, 10000);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Relay grid
+// ═══════════════════════════════════════════════════════════════════
+const PORT_COUNT = 8;
+
+function buildRelayGrid() {
+  const grid = document.getElementById('relay-grid');
+  grid.innerHTML = '';
+  for (let i = 0; i < PORT_COUNT; i++) {
+    const card = document.createElement('div');
+    card.className = 'relay-card';
+    card.innerHTML = `
+      <div class="relay-name" id="rn-${i}">Port ${i}</div>
+      <button class="relay-toggle off" id="rt-${i}" onclick="toggleRelay(${i})">OFF</button>
+      <div class="relay-current" id="rc-${i}">0.0 A</div>`;
+    grid.appendChild(card);
+  }
+}
+
+async function loadRelays() {
+  for (let i = 0; i < PORT_COUNT; i++) {
+    try {
+      const r = await api('GET', `/api/gpio/${i}`);
+      if (!r.ok) continue;
+      const d = await r.json();
+      updateRelayCard(d);
+      // Load port name
+      const nr = await api('GET', `/api/port/${i}/name`);
+      if (nr.ok) {
+        const nd = await nr.json();
+        const el = document.getElementById(`rn-${i}`);
+        if (el && nd.name) el.textContent = nd.name;
+      }
+    } catch(_) {}
+  }
+}
+
+function updateRelayCard(d) {
+  const btn = document.getElementById(`rt-${d.pin}`);
+  if (!btn) return;
+  btn.textContent = d.state ? 'ON' : 'OFF';
+  btn.className = 'relay-toggle ' + (d.state ? 'on' : 'off');
+  btn.disabled = !d.allowed;
+}
+
+async function toggleRelay(pin) {
+  try {
+    const r = await api('POST', `/api/gpio/${pin}/toggle`);
+    if (!r.ok) return;
+    const d = await r.json();
+    const btn = document.getElementById(`rt-${pin}`);
+    if (btn) {
+      btn.textContent = d.state ? 'ON' : 'OFF';
+      btn.className = 'relay-toggle ' + (d.state ? 'on' : 'off');
+    }
+  } catch(_) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Sensors
+// ═══════════════════════════════════════════════════════════════════
+async function loadSensors() {
+  try {
+    const r = await api('GET', '/api/sensors');
+    if (!r.ok) return;
+    const d = await r.json();
+    document.getElementById('s-temp').textContent = d.temperature_c.toFixed(1);
+    document.getElementById('s-volt').textContent = d.voltage_v.toFixed(1);
+    // Update per-port current
+    if (Array.isArray(d.current_a)) {
+      for (let i = 0; i < d.current_a.length && i < PORT_COUNT; i++) {
+        const el = document.getElementById(`rc-${i}`);
+        if (el) el.textContent = d.current_a[i].toFixed(1) + ' A';
+      }
+    }
+  } catch(_) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Admin accordion
+// ═══════════════════════════════════════════════════════════════════
+function toggleAdmin() {
+  const body = document.getElementById('admin-body');
+  const caret = document.getElementById('admin-caret');
+  const open = !body.classList.contains('hidden');
+  body.classList.toggle('hidden', open);
+  caret.textContent = open ? '▶' : '▼';
+}
+
+// ── Change password ──
+async function doChangePassword() {
+  const old = document.getElementById('cp-old').value;
+  const np  = document.getElementById('cp-new').value;
+  if (!old || !np) { showMsg('cp-msg', 'Fill in both fields.', false); return; }
+  try {
+    const r = await api('POST', '/api/admin/password', { old, new: np });
+    if (r.ok) {
+      const creds = atob(getCreds());
+      const user = creds.split(':')[0];
+      setCreds(btoa(user + ':' + np));
+      showMsg('cp-msg', 'Password changed.', true);
+      document.getElementById('cp-old').value = '';
+      document.getElementById('cp-new').value = '';
+    } else {
+      showMsg('cp-msg', 'Failed (wrong old password?).', false);
+    }
+  } catch(e) { if (e.message !== '401') showMsg('cp-msg', 'Error.', false); }
+}
+
+// ── Port names ──
+async function buildPortNamesTable() {
+  const tbody = document.getElementById('port-names-body');
+  tbody.innerHTML = '';
+  for (let i = 0; i < PORT_COUNT; i++) {
+    let name = `Port ${i}`;
+    try {
+      const r = await api('GET', `/api/port/${i}/name`);
+      if (r.ok) { const d = await r.json(); if (d.name) name = d.name; }
+    } catch(_) {}
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i}</td>
+      <td><input type="text" id="pn-${i}" value="${name}"/></td>
+      <td><button class="btn btn-secondary" style="padding:4px 10px;font-size:.8rem"
+          onclick="savePortName(${i})">Save</button></td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+async function savePortName(i) {
+  const name = document.getElementById(`pn-${i}`).value.trim();
+  try {
+    const r = await api('POST', `/api/port/${i}/name`, { name });
+    if (r.ok) {
+      const el = document.getElementById(`rn-${i}`);
+      if (el) el.textContent = name;
+    }
+  } catch(_) {}
+}
+
+// ── New user checkboxes ──
+function buildNewUserPortCheckboxes() {
+  const row = document.getElementById('nu-ports-row');
+  row.innerHTML = '<span style="font-size:.8rem;color:var(--muted);margin-right:6px">Ports:</span>';
+  for (let i = 0; i < PORT_COUNT; i++) {
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'font-size:.8rem;display:flex;align-items:center;gap:3px';
+    lbl.innerHTML = `<input type="checkbox" class="nu-port-cb" data-port="${i}" checked/>${i}`;
+    row.appendChild(lbl);
+  }
+}
+
+async function doCreateUser() {
+  const username = document.getElementById('nu-user').value.trim();
+  const password = document.getElementById('nu-pass').value;
+  if (!username || !password) { showMsg('nu-msg', 'Enter username and password.', false); return; }
+
+  let ports = 0;
+  document.querySelectorAll('.nu-port-cb').forEach(cb => {
+    if (cb.checked) ports |= (1 << parseInt(cb.dataset.port));
+  });
+  const admin = document.getElementById('nu-admin').checked;
+
+  try {
+    const r = await api('POST', '/api/admin/users', { username, password, ports, admin });
+    if (r.ok) {
+      showMsg('nu-msg', `User "${username}" created.`, true);
+      document.getElementById('nu-user').value = '';
+      document.getElementById('nu-pass').value = '';
+    } else {
+      showMsg('nu-msg', 'Failed to create user.', false);
+    }
+  } catch(e) { if (e.message !== '401') showMsg('nu-msg', 'Error.', false); }
+}
+
+// ── Firmware upload ──
+async function doFirmwareUpload() {
+  const fileInput = document.getElementById('fw-file');
+  if (!fileInput.files || !fileInput.files[0]) {
+    showMsg('fw-msg', 'Select a firmware file first.', false); return;
+  }
+  const file = fileInput.files[0];
+  const wrap = document.getElementById('fw-progress-wrap');
+  const bar  = document.getElementById('fw-progress');
+
+  wrap.classList.add('active');
+  bar.value = 0;
+
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/update');
+  const creds = getCreds();
+  if (creds) xhr.setRequestHeader('Authorization', 'Basic ' + creds);
+  xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+  xhr.upload.onprogress = e => {
+    if (e.lengthComputable) bar.value = Math.round(e.loaded / e.total * 100);
+  };
+
+  xhr.onload = () => {
+    wrap.classList.remove('active');
+    if (xhr.status === 200) {
+      showMsg('fw-msg', 'Firmware uploaded. Device rebooting...', true);
+    } else if (xhr.status === 401) {
+      handle401();
+    } else {
+      showMsg('fw-msg', 'Upload failed (HTTP ' + xhr.status + ').', false);
+    }
+  };
+  xhr.onerror = () => {
+    wrap.classList.remove('active');
+    showMsg('fw-msg', 'Network error during upload.', false);
+  };
+
+  xhr.send(file);
+}
+
+// ── Factory reset ──
+async function doFactoryReset() {
+  if (!confirm('Reset ALL settings to factory defaults? This cannot be undone.')) return;
+  try {
+    await api('POST', '/api/admin/reset');
+    showMsg('fr-msg', 'Factory reset initiated. Device rebooting...', true);
+  } catch(e) { if (e.message !== '401') showMsg('fr-msg', 'Error.', false); }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Startup — check existing session
+// ═══════════════════════════════════════════════════════════════════
+(async function startup() {
+  if (getCreds()) {
+    try {
+      const r = await fetch('/api/status', { headers: authHeader() });
+      if (r.ok) {
+        const d = await r.json();
+        document.getElementById('login-modal').classList.add('hidden');
+        if (d.first_login) {
+          document.getElementById('firstlogin-modal').classList.remove('hidden');
+        } else {
+          initApp(d);
+        }
+        return;
+      }
+    } catch(_) {}
+  }
+  // Show login
+})();
+</script>
+</body>
 </html>

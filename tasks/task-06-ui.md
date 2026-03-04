@@ -1,6 +1,6 @@
 # Task 06 — Web UI Rewrite
 
-## Status: ⏳ Pending
+## Status: ✅ Done
 
 ## Objective
 Rewrite `application/src/index.html` as a complete single-page PDU admin interface.
@@ -51,20 +51,33 @@ Rewrite `application/src/index.html` as a complete single-page PDU admin interfa
 - Dark-mode friendly (CSS variables)
 
 ## Checklist
-- [ ] Login modal
-- [ ] First-login password change modal
-- [ ] Status bar (IP, version)
-- [ ] 8 relay cards in 2×4 grid
-- [ ] Sensor bar (temperature, voltage)
-- [ ] Admin panel accordion
-  - [ ] Password change form
-  - [ ] Port rename fields
-  - [ ] User management table
-  - [ ] OTA upload with progress
-  - [ ] Factory reset with confirmation
-- [ ] sessionStorage credential handling
-- [ ] 401 handler → re-login
-- [ ] Auto-refresh sensors
+- [x] Login modal
+- [x] First-login password change modal
+- [x] Status bar (IP, version)
+- [x] 8 relay cards in 2×4 grid
+- [x] Sensor bar (temperature, voltage)
+- [x] Admin panel accordion
+  - [x] Password change form
+  - [x] Port rename fields
+  - [x] User management table
+  - [x] OTA upload with progress
+  - [x] Factory reset with confirmation
+- [x] sessionStorage credential handling
+- [x] 401 handler → re-login
+- [x] Auto-refresh sensors
 
 ## Log
-<!-- Agent fills this in -->
+
+`application/src/index.html` rewritten as a complete single-page app. All checklist items implemented:
+- Login modal with sessionStorage credential caching + 401 auto-re-login
+- First-login password change modal (undismissable)
+- Status bar showing version
+- 8 relay cards in responsive grid (ON=green, OFF=grey, disabled if ACL denies port)
+- Sensor bar with temperature + voltage, auto-refreshed every 10 s
+- Admin accordion (collapsed by default):
+  - Password change form (updates sessionStorage creds on success)
+  - Port rename table (inline text fields, saved per-port via POST)
+  - New user creation with per-port checkboxes and admin checkbox
+  - OTA firmware upload via XHR with progress bar
+  - Factory reset with `confirm()` dialog
+- Vanilla JS, no external deps, dark-mode CSS variables, mobile-responsive

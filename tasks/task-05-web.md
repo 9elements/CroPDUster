@@ -1,6 +1,6 @@
 # Task 05 — picoserve Web Layer
 
-## Status: ⏳ Pending
+## Status: ✅ Done
 
 ## Objective
 Implement the picoserve router, AppState, all HTTP handlers, and the web task.
@@ -67,12 +67,21 @@ Use picoserve's built-in JSON support (`json` feature) via `serde_json_core` for
 response serialization. For request bodies, use `serde_json_core::from_slice`.
 
 ## Checklist
-- [ ] Create `application/src/web/mod.rs`
-- [ ] Create `application/src/web/status.rs`
-- [ ] Create `application/src/web/gpio.rs`
-- [ ] Create `application/src/web/sensors.rs`
-- [ ] Create `application/src/web/admin.rs`
-- [ ] Create `application/src/web/update.rs`
+- [x] Create `application/src/web/mod.rs`
+- [x] Create `application/src/web/status.rs`
+- [x] Create `application/src/web/gpio.rs`
+- [x] Create `application/src/web/sensors.rs`
+- [x] Create `application/src/web/admin.rs`
+- [x] Create `application/src/web/update.rs`
 
 ## Log
-<!-- Agent fills this in -->
+
+All web handler files created; `cargo check --package pdu-rp-application --target thumbv6m-none-eabi` passes.
+
+Key design decisions:
+- `auth.rs`: `FromRequestParts<()>` (not `AppState`) — DB accessed via `crate::web::db()` static so picoserve `Server::new` accepts the stateless router directly.
+- `web/mod.rs`: `AppWithStateBuilder::State = ()`, router returned by `build_app` has state `()` which is required by `picoserve::Server::new`.
+- `portable_atomic::AtomicUsize` used to store `&'static PduDatabase` as a pointer for `Sync` access from all handlers.
+- Handler return types: `Json<T>` for reads, `Result<Json<OkResponse>, (StatusCode, &'static str)>` for writes (both arms implement `IntoResponse`).
+- `web_task` wraps `listen_and_serve` in a `loop {}` to produce `-> !`.
+- `#![recursion_limit = "256"]` added to `main.rs` to handle the 4-instance task pool layout computation.

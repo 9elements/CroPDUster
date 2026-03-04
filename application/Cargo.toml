@@ -17,10 +17,14 @@ embassy-futures = { version = "0.1.2" }
 embassy-net = { version = "0.8.0", features = ["defmt", "tcp", "dhcpv4", "medium-ethernet", "dns", "proto-ipv4"] }
 embassy-net-wiznet = { version = "0.2.1", features = ["defmt"] }
 
-picoserve = { version = "0.18" }
-ekv       = { version = "1.0" }
-sha2      = { version = "0.10", default-features = false }
-serde     = { version = "1.0", default-features = false, features = ["derive"] }
+picoserve     = { version = "0.18", features = ["embassy", "json", "defmt"] }
+ekv           = { version = "1.0" }
+# embassy-sync 0.6.x is pulled in by ekv; alias it so we can use its RawMutex
+# with the ekv Database type (the two embassy-sync versions are ABI-incompatible).
+embassy-sync-ekv = { version = "0.6.2", package = "embassy-sync" }
+sha2          = { version = "0.10", default-features = false }
+serde         = { version = "1.0", default-features = false, features = ["derive"] }
+base64        = { version = "0.22", default-features = false }
 
 defmt = "1.0.1"
 defmt-rtt = "1.0.0"
@@ -29,7 +33,7 @@ panic-reset = { version = "0.1.1", optional = true }
 embedded-hal-bus = { version = "0.1", features = ["async"] }
 embedded-io-async = { version = "0.7", features = ["defmt"] }
 
-cortex-m = { version = "0.7.6", features = ["inline-asm", "critical-section-single-core"] }
+cortex-m = { version = "0.7.6", features = ["inline-asm"] }
 cortex-m-rt = "0.7.0"
 embedded-storage = "0.3.1"
 embedded-storage-async = "0.4.1"
