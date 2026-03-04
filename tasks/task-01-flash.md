@@ -1,6 +1,6 @@
 # Task 01 — Flash Layout Changes
 
-## Status: ⏳ Pending
+## Status: ✅ Done
 
 ## Objective
 Update both `bootloader/memory.x` and `application/memory.x` to reflect the new
@@ -22,11 +22,11 @@ region.
 - Add linker symbols for CONFIG region
 
 ## Checklist
-- [ ] Update `bootloader/memory.x`
-- [ ] Update `application/memory.x`
-- [ ] Verify address arithmetic: 0x10007000 + 256K = 0x10047000 ✓
-- [ ] Verify address arithmetic: 0x10047000 + 256K = 0x10087000 ✓
-- [ ] Verify address arithmetic: 0x10087000 + 256K = 0x100C7000, fits in 2MB flash (0x10200000) ✓
+- [x] Update `bootloader/memory.x`
+- [x] Update `application/memory.x`
+- [x] Verify address arithmetic: 0x10007000 + 256K = 0x10047000 ✓
+- [x] Verify address arithmetic: 0x10047000 + 256K = 0x10087000 ✓
+- [x] Verify address arithmetic: 0x10087000 + 256K = 0x100C7000, fits in 2MB flash (0x10200000) ✓
 
 ## Notes
 - `scripts/combine_binaries.py` reads ELF PT_LOAD segments — no changes needed there
@@ -34,4 +34,15 @@ region.
 - ekv page size: 4096 bytes → 64 pages in 256 KB CONFIG region
 
 ## Log
-<!-- Agent fills this in -->
+
+### `bootloader/memory.x`
+- ACTIVE: `LENGTH = 512K` → `LENGTH = 256K` (origin unchanged at `0x10007000`)
+- DFU: `ORIGIN = 0x10087000, LENGTH = 516K` → `ORIGIN = 0x10047000, LENGTH = 256K`
+- CONFIG: new region added — `ORIGIN = 0x10087000, LENGTH = 256K`
+- Added linker symbols `__bootloader_config_start` and `__bootloader_config_end`
+
+### `application/memory.x`
+- FLASH: `LENGTH = 512K` → `LENGTH = 256K` (origin unchanged at `0x10007000`)
+- DFU: `ORIGIN = 0x10087000, LENGTH = 516K` → `ORIGIN = 0x10047000, LENGTH = 256K`
+- CONFIG: new region added — `ORIGIN = 0x10087000, LENGTH = 256K`
+- Added linker symbols `__bootloader_config_start` and `__bootloader_config_end`

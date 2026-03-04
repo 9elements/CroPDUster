@@ -4,8 +4,9 @@ MEMORY
   BOOT2                             : ORIGIN = 0x10000000, LENGTH = 0x100
   FLASH                             : ORIGIN = 0x10000100, LENGTH = 24K - 0x100
   BOOTLOADER_STATE                  : ORIGIN = 0x10006000, LENGTH = 4K
-  ACTIVE                            : ORIGIN = 0x10007000, LENGTH = 512K
-  DFU                               : ORIGIN = 0x10087000, LENGTH = 516K
+  ACTIVE                            : ORIGIN = 0x10007000, LENGTH = 256K
+  DFU                               : ORIGIN = 0x10047000, LENGTH = 256K
+  CONFIG                            : ORIGIN = 0x10087000, LENGTH = 256K
 
   /* Pick one of the two options for RAM layout     */
 
@@ -29,3 +30,6 @@ __bootloader_active_end = ORIGIN(ACTIVE) + LENGTH(ACTIVE) - ORIGIN(BOOT2);
 
 __bootloader_dfu_start = ORIGIN(DFU) - ORIGIN(BOOT2);
 __bootloader_dfu_end = ORIGIN(DFU) + LENGTH(DFU) - ORIGIN(BOOT2);
+
+__bootloader_config_start = ORIGIN(CONFIG) - ORIGIN(BOOT2);
+__bootloader_config_end   = ORIGIN(CONFIG) + LENGTH(CONFIG) - ORIGIN(BOOT2);
