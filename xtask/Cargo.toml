@@ -1,0 +1,17 @@
+[package]
+name = "xtask"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "xtask"
+path = "src/main.rs"
+
+[dependencies]
+anyhow  = "1"
+xshell  = "0.2"
+clap    = { version = "4", features = ["derive"] }
+ureq    = { version = "2", features = [] }
+base64  = "0.22"
+which   = "6"

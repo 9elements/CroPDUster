@@ -1,6 +1,6 @@
 # Task 03 — xtask Build System
 
-## Status: ⏳ Pending
+## Status: ✅ Done
 
 ## Objective
 Replace the Makefile with a `cargo xtask` binary. Delete the Makefile.
@@ -58,12 +58,17 @@ base64 = "0.22"
 - Unmount
 
 ## Checklist
-- [ ] Create `xtask/Cargo.toml`
-- [ ] Create `xtask/src/main.rs` with all subcommands
-- [ ] Create `.cargo/config.toml` with xtask alias
-- [ ] Delete `Makefile`
-- [ ] Test: `cargo xtask --help` works from workspace root
-- [ ] Test: `cargo xtask check-tools` runs without panic
+- [x] Create `xtask/Cargo.toml`
+- [x] Create `xtask/src/main.rs` with all subcommands
+- [x] Create `.cargo/config.toml` with xtask alias
+- [x] Delete `Makefile`
+- [x] Test: `cargo xtask --help` works from workspace root
+- [x] Test: `cargo xtask check-tools` runs without panic
 
 ## Log
-<!-- Agent fills this in -->
+- Created `.cargo/config.toml` (workspace root) with `[alias] xtask = "run --package xtask --"`
+- Created `xtask/Cargo.toml` with dependencies: anyhow, xshell, clap, ureq, base64, which
+- Created `xtask/src/main.rs` implementing all subcommands: build, combine, dist, flash, check-tools, clean
+- Deleted `Makefile`
+- Fixed pre-existing `application/Cargo.toml` bug: `embedded-io-async` feature `defmt-03` → `defmt` (feature was renamed in 0.7)
+- `cargo build --package xtask` compiles successfully for the host (19.62s, no errors)

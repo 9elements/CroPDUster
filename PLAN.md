@@ -125,7 +125,7 @@ cargo xtask clean                  # clean all build artifacts
 |---|-----------------------------------|------------|----------------------------|
 | 1 | Flash layout (memory.x files)     | ✅ Done     | `tasks/task-01-flash.md`   |
 | 2 | Dependency upgrades               | ✅ Done     | `tasks/task-02-deps.md`    |
-| 3 | xtask build system                | ⏳ Pending  | `tasks/task-03-xtask.md`   |
+| 3 | xtask build system                | ✅ Done     | `tasks/task-03-xtask.md`   |
 | 4 | Application core modules          | ⏳ Pending  | `tasks/task-04-core.md`    |
 | 5 | picoserve web layer               | ⏳ Pending  | `tasks/task-05-web.md`     |
 | 6 | Web UI rewrite                    | ⏳ Pending  | `tasks/task-06-ui.md`      |
