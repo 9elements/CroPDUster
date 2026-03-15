@@ -161,9 +161,14 @@ async fn main(spawner: Spawner) {
     let seed = rng.next_u64();
     static STACK_RESOURCES: StaticCell<StackResources<{ WEB_TASK_POOL_SIZE + 2 }>> =
         StaticCell::new();
+    // ignore_naks: ignore NAKs from any server (not just the lease server).
+    // Without this, a second DHCP server on the broadcast domain (192.168.8.1)
+    // sends NAKs for our 10.93.128.1 lease, causing constant churn.
+    let mut dhcp_config = embassy_net::DhcpConfig::default();
+    dhcp_config.ignore_naks = true;
     let (stack, net_runner) = embassy_net::new(
         device,
-        embassy_net::Config::dhcpv4(Default::default()),
+        embassy_net::Config::dhcpv4(dhcp_config),
         STACK_RESOURCES.init(StackResources::new()),
         seed,
     );
