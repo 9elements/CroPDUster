@@ -74,21 +74,24 @@ impl AppWithStateBuilder for App {
             // Sensors
             .route("/api/sensors", get(sensors::handle_sensors))
             // GPIO — pin parameter parsed from path
+            // NOTE: picoserve's split_first_segment requires a leading '/' before each
+            // segment; the string prefix must NOT end with '/' — the separator is
+            // consumed by split_first_segment itself.
             .route(
-                ("/api/gpio/", parse_path_segment::<u8>()),
+                ("/api/gpio", parse_path_segment::<u8>()),
                 get(gpio::handle_gpio_get),
             )
             .route(
-                ("/api/gpio/", parse_path_segment::<u8>(), "/toggle"),
+                ("/api/gpio", parse_path_segment::<u8>(), "/toggle"),
                 post(gpio::handle_gpio_toggle),
             )
             .route(
-                ("/api/gpio/", parse_path_segment::<u8>(), "/set"),
+                ("/api/gpio", parse_path_segment::<u8>(), "/set"),
                 post(gpio::handle_gpio_set),
             )
             // Port names
             .route(
-                ("/api/port/", parse_path_segment::<u8>(), "/name"),
+                ("/api/port", parse_path_segment::<u8>(), "/name"),
                 get(admin::handle_port_name_get).post(admin::handle_port_name_set),
             )
             // Admin endpoints
@@ -96,7 +99,7 @@ impl AppWithStateBuilder for App {
             .route("/api/admin/users", post(admin::handle_create_user))
             .route(
                 (
-                    "/api/admin/users/",
+                    "/api/admin/users",
                     parse_path_segment::<heapless::String<32>>(),
                     "/ports",
                 ),
@@ -104,7 +107,7 @@ impl AppWithStateBuilder for App {
             )
             .route(
                 (
-                    "/api/admin/users/",
+                    "/api/admin/users",
                     parse_path_segment::<heapless::String<32>>(),
                 ),
                 delete(admin::handle_delete_user),
