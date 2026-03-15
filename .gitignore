@@ -1,0 +1,19 @@
+# Build artifacts
+/build/
+/target/
+
+# Vendored dependencies
+/embassy/
+
+# Stray binaries
+*.bin
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Credentials
+.pdu-credentials
