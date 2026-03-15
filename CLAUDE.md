@@ -30,6 +30,7 @@ cargo xtask dist
 cargo xtask flash                         # Flash combined UF2 via BOOTSEL drag-and-drop
 cargo xtask flash --bootloader            # Flash bootloader only
 cargo xtask flash --application           # Flash application only
+cargo xtask flash --probe                 # Flash via probe-rs with RTT logging (recommended for dev)
 cargo xtask flash --ota 192.168.1.100     # OTA upload to running device
 
 # Utility commands
@@ -58,11 +59,11 @@ All build outputs are placed in the `build/` directory:
 
 ## Prerequisites
 
-- Rust nightly toolchain (2025-02-01)
+- Rust nightly toolchain (2026-02-01)
 - `thumbv6m-none-eabi` target
 - `elf2uf2-rs` (UF2 converter)
 - `flip-link` (linker for stack overflow protection)
-- Optional: `cargo-flash` (for flashing to device)
+- Optional: `probe-rs` (for probe-based flashing and RTT logging)
 
 ## Hardware Configuration
 
@@ -192,11 +193,13 @@ When firmware is uploaded via `/api/update`:
 
 ## Cargo Workspace
 
-This is a Cargo workspace with two members:
+This is a Cargo workspace with three members:
 
 - `bootloader`: Bootloader binary (uses minimal dependencies)
 - `application`: Main PDU controller application
 - `xtask`: Host-only build helper (`cargo xtask ...`)
+
+The `archive/` directory contains the original PIC18-based firmware tooling (Makefile, MPLAB project) for reference.
 
 ### Key Dependencies
 
@@ -211,7 +214,6 @@ Application dependencies:
 - `embedded-hal-bus` v0.1: Async SPI device support
 - `static_cell`: Static memory allocation
 - `portable-atomic`: Atomic operations with critical-section support
-- `heapless`: No-std collections (String, Vec)
 - `heapless`: No-std collections (String, Vec)
 
 Dependencies use patched Embassy framework from git revision `3651d8ef249...`.
