@@ -295,6 +295,11 @@ async function api(method, path, body) {
   return r;
 }
 
+// Escape a string for safe use inside HTML attributes.
+function escAttr(s) {
+  return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function handle401() {
   clearCreds();
   document.getElementById('app').classList.add('hidden');
@@ -512,7 +517,7 @@ async function buildPortNamesTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${i}</td>
-      <td><input type="text" id="pn-${i}" value="${name}"/></td>
+      <td><input type="text" id="pn-${i}" value="${escAttr(name)}"/></td>
       <td><button class="btn btn-secondary" style="padding:4px 10px;font-size:.8rem"
           onclick="savePortName(${i})">Save</button></td>`;
     tbody.appendChild(tr);
