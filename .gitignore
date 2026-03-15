@@ -17,3 +17,9 @@ Thumbs.db
 
 # Credentials
 .pdu-credentials
+
+# LLM planning / task files
+PLAN.md
+/tasks/
+*.plan.md
+*.task.md
