@@ -36,9 +36,13 @@ enum Command {
         /// Flash only the application
         #[arg(long)]
         application: bool,
-        /// Use probe-rs instead of UF2 drag-and-drop
+        /// Use probe-rs instead of UF2 drag-and-drop (attaches RTT for live logging)
         #[arg(long)]
         probe: bool,
+        /// Build the application with the 'debug' feature (panic-probe + RTT logging).
+        /// Automatically implied by --probe.
+        #[arg(long)]
+        debug: bool,
         /// OTA upload to a running device at the given IP address
         #[arg(long, value_name = "IP")]
         ota: Option<String>,
@@ -71,6 +75,10 @@ fn application_elf(root: &Path) -> PathBuf {
     root.join("build/application.elf")
 }
 
+fn application_debug_elf(root: &Path) -> PathBuf {
+    root.join("build/application-debug.elf")
+}
+
 fn bootloader_uf2(root: &Path) -> PathBuf {
     root.join("build/bootloader.uf2")
 }
@@ -93,9 +101,7 @@ fn build_bootloader(sh: &Shell, root: &Path) -> Result<()> {
     let _dir = sh.push_dir(root.join("bootloader"));
     cmd!(sh, "cargo build --release").run()?;
 
-    let src = root
-        .join("bootloader")
-        .join("target/thumbv6m-none-eabi/release/pdu-rp-bootloader");
+    let src = root.join("target/thumbv6m-none-eabi/release/pdu-rp-bootloader");
     let dst = bootloader_elf(root);
     std::fs::copy(&src, &dst)
         .with_context(|| format!("copy {} → {}", src.display(), dst.display()))?;
@@ -114,16 +120,38 @@ fn build_application(sh: &Shell, root: &Path) -> Result<()> {
     let _dir = sh.push_dir(root.join("application"));
     cmd!(sh, "cargo build --release").run()?;
 
-    let src = root
-        .join("application")
-        .join("target/thumbv6m-none-eabi/release/pdu-rp-application");
+    let src = root.join("target/thumbv6m-none-eabi/release/pdu-rp-application");
     let dst = application_elf(root);
     std::fs::copy(&src, &dst)
         .with_context(|| format!("copy {} → {}", src.display(), dst.display()))?;
 
     let uf2 = application_uf2(root);
+
     cmd!(sh, "elf2uf2-rs {dst} {uf2}").run()?;
     eprintln!("  ✓ {}", uf2.display());
+    Ok(())
+}
+
+/// Build the application with the `debug` feature (panic-probe + full defmt RTT logging).
+/// The resulting ELF is stored separately as `build/application-debug.elf` so it
+/// doesn't overwrite the production UF2 artefacts.
+fn build_application_debug(sh: &Shell, root: &Path) -> Result<()> {
+    eprintln!("→ Building application (debug / probe-rs)…");
+    std::fs::create_dir_all(build_dir(root))?;
+
+    let _dir = sh.push_dir(root.join("application"));
+    cmd!(
+        sh,
+        "cargo build --release --no-default-features --features debug"
+    )
+    .run()?;
+
+    let src = root.join("target/thumbv6m-none-eabi/release/pdu-rp-application");
+    let dst = application_debug_elf(root);
+    std::fs::copy(&src, &dst)
+        .with_context(|| format!("copy {} → {}", src.display(), dst.display()))?;
+
+    eprintln!("  ✓ {}", dst.display());
     Ok(())
 }
 
@@ -235,9 +263,80 @@ fn flash_uf2(uf2_path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn flash_probe(sh: &Shell, elf_path: &Path) -> Result<()> {
-    cmd!(sh, "probe-rs run --chip RP2040 {elf_path}").run()?;
+/// Flash an ELF to the device via probe-rs (download only, no reset).
+fn flash_only_probe(sh: &Shell, elf_path: &Path) -> Result<()> {
+    cmd!(sh, "probe-rs download --chip RP2040 {elf_path}").run()?;
     Ok(())
+}
+
+/// Reset the chip via probe-rs.
+fn reset_probe(sh: &Shell) -> Result<()> {
+    cmd!(sh, "probe-rs reset --chip RP2040").run()?;
+    Ok(())
+}
+
+/// Attach RTT to a running chip using the given ELF for memory-map info.
+/// Runs until the user presses Ctrl+C.
+fn attach_rtt_probe(sh: &Shell, app_elf: &Path) -> Result<()> {
+    cmd!(sh, "probe-rs attach --chip RP2040 {app_elf}").run()?;
+    Ok(())
+}
+
+/// Parse a UF2 file and return a flat raw binary containing only the blocks
+/// whose target address falls within the ACTIVE partition (`>= ACTIVE_START`).
+/// Gaps between blocks are filled with `0xFF`.
+fn uf2_to_active_binary(uf2_data: &[u8]) -> Result<Vec<u8>> {
+    const ACTIVE_START: u32 = 0x10007000;
+    const MAGIC0: u32 = 0x0A324655;
+    const MAGIC1: u32 = 0x9E5D5157;
+    const BLOCK_SIZE: usize = 512;
+    const PAYLOAD_OFFSET: usize = 32;
+    const PAYLOAD_SIZE: usize = 256;
+
+    let mut blocks: Vec<(u32, [u8; PAYLOAD_SIZE])> = Vec::new();
+
+    for chunk in uf2_data.chunks(BLOCK_SIZE) {
+        if chunk.len() < BLOCK_SIZE {
+            break;
+        }
+        let m0 = u32::from_le_bytes(chunk[0..4].try_into().unwrap());
+        let m1 = u32::from_le_bytes(chunk[4..8].try_into().unwrap());
+        if m0 != MAGIC0 || m1 != MAGIC1 {
+            continue;
+        }
+        let addr = u32::from_le_bytes(chunk[12..16].try_into().unwrap());
+        if addr < ACTIVE_START {
+            continue; // skip BOOT2 and bootloader blocks
+        }
+        let mut payload = [0u8; PAYLOAD_SIZE];
+        payload.copy_from_slice(&chunk[PAYLOAD_OFFSET..PAYLOAD_OFFSET + PAYLOAD_SIZE]);
+        blocks.push((addr, payload));
+    }
+
+    if blocks.is_empty() {
+        bail!(
+            "No ACTIVE region blocks found in UF2 (expected addresses >= {:#010x})",
+            ACTIVE_START
+        );
+    }
+    blocks.sort_by_key(|(addr, _)| *addr);
+
+    let first_addr = blocks[0].0;
+    let last_addr = blocks.last().unwrap().0;
+    let bin_size = (last_addr - first_addr) as usize + PAYLOAD_SIZE;
+    let mut bin = vec![0xFFu8; bin_size];
+    for (addr, payload) in &blocks {
+        let off = (addr - first_addr) as usize;
+        bin[off..off + PAYLOAD_SIZE].copy_from_slice(payload);
+    }
+
+    eprintln!(
+        "  UF2: {} ACTIVE blocks → {:.1} KiB raw binary (base {:#010x})",
+        blocks.len(),
+        bin_size as f64 / 1024.0,
+        first_addr
+    );
+    Ok(bin)
 }
 
 fn flash_ota(uf2_path: &Path, ip: &str) -> Result<()> {
@@ -252,19 +351,41 @@ fn flash_ota(uf2_path: &Path, ip: &str) -> Result<()> {
     let url = format!("http://{}/api/update", ip);
     eprintln!("  OTA uploading {} to {}…", uf2_path.display(), url);
 
-    let data =
+    let uf2_data =
         std::fs::read(uf2_path).with_context(|| format!("reading {}", uf2_path.display()))?;
 
-    let response = ureq::post(&url)
+    let data = uf2_to_active_binary(&uf2_data)
+        .with_context(|| format!("parsing UF2 {}", uf2_path.display()))?;
+
+    let result = ureq::post(&url)
         .set("Authorization", &auth)
         .set("Content-Type", "application/octet-stream")
-        .send_bytes(&data)?;
+        .send_bytes(&data);
 
-    if response.status() == 200 {
-        eprintln!("  ✓ Firmware uploaded — device will reboot");
-        Ok(())
-    } else {
-        bail!("OTA failed: HTTP {}", response.status())
+    match result {
+        Ok(response) => {
+            let status = response.status();
+            if status == 200 {
+                eprintln!("  OTA upload complete — device is rebooting");
+                Ok(())
+            } else {
+                let body = response.into_string().unwrap_or_default();
+                bail!("OTA failed: HTTP {} — {}", status, body)
+            }
+        }
+        Err(ureq::Error::Transport(t))
+            if t.kind() == ureq::ErrorKind::ConnectionFailed
+                || t.message()
+                    .map(|m| m.contains("Connection reset") || m.contains("os error 104"))
+                    .unwrap_or(false) =>
+        {
+            // Device reset the TCP connection immediately after accepting the
+            // firmware write — this is expected when sys_reset() fires before
+            // the HTTP response is fully flushed.
+            eprintln!("  OTA upload complete — device reset connection (reboot triggered)");
+            Ok(())
+        }
+        Err(e) => bail!("OTA request failed: {}", e),
     }
 }
 
@@ -316,9 +437,12 @@ fn main() -> Result<()> {
             bootloader,
             application,
             probe,
+            debug,
             ota,
         } => {
             let flash_combined = !bootloader && !application;
+            // --probe implies --debug (build with panic-probe + full RTT)
+            let use_debug_build = debug || probe;
 
             if let Some(ip) = &ota {
                 // OTA mode: always flashes the application UF2
@@ -329,19 +453,77 @@ fn main() -> Result<()> {
                 }
                 flash_ota(&uf2, ip)?;
             } else if probe {
-                if flash_combined || bootloader {
-                    let elf = bootloader_elf(&root);
-                    if !elf.exists() {
+                // probe-rs path: bootloader via download-only, application via run (RTT)
+                // Always use the debug build for the application so RTT logging works.
+                let get_app_elf = |root: &Path| {
+                    if use_debug_build {
+                        application_debug_elf(root)
+                    } else {
+                        application_elf(root)
+                    }
+                };
+                let build_app = |sh: &Shell, root: &Path| {
+                    if use_debug_build {
+                        build_application_debug(sh, root)
+                    } else {
+                        build_application(sh, root)
+                    }
+                };
+
+                // --probe always rebuilds (development workflow: latest code on device).
+                if flash_combined {
+                    // IMPORTANT: application must be downloaded BEFORE bootloader.
+                    //
+                    // The application ELF contains a BOOT2 section at 0x10000000.
+                    // Flash sector 0 (0x10000000–0x10000FFF) is shared: BOOT2 occupies
+                    // the first 256 bytes and the bootloader vector table starts at
+                    // 0x10000100. probe-rs erases the entire sector to write BOOT2,
+                    // destroying the bootloader vector table in the process.
+                    //
+                    // Downloading the bootloader second restores sector 0 correctly.
+                    build_app(&sh, &root)?;
+                    let app_elf = get_app_elf(&root);
+                    eprintln!("→ Downloading application via probe-rs…");
+                    flash_only_probe(&sh, &app_elf)?;
+
+                    build_bootloader(&sh, &root)?;
+                    let bl_elf = bootloader_elf(&root);
+                    eprintln!("→ Downloading bootloader via probe-rs (restores sector 0)…");
+                    flash_only_probe(&sh, &bl_elf)?;
+
+                    eprintln!("→ Resetting chip…");
+                    reset_probe(&sh)?;
+
+                    eprintln!("→ Attaching RTT (Ctrl+C to exit)…");
+                    attach_rtt_probe(&sh, &app_elf)?;
+                } else {
+                    if bootloader {
                         build_bootloader(&sh, &root)?;
+                        let elf = bootloader_elf(&root);
+                        eprintln!("→ Downloading bootloader via probe-rs…");
+                        flash_only_probe(&sh, &elf)?;
+                        eprintln!("→ Resetting chip…");
+                        reset_probe(&sh)?;
                     }
-                    flash_probe(&sh, &elf)?;
-                }
-                if flash_combined || application {
-                    let elf = application_elf(&root);
-                    if !elf.exists() {
-                        build_application(&sh, &root)?;
+                    if application {
+                        // Downloading application erases sector 0 (BOOT2 + bootloader).
+                        // Re-download the bootloader afterward to restore sector 0.
+                        build_app(&sh, &root)?;
+                        let app_elf = get_app_elf(&root);
+                        eprintln!("→ Downloading application via probe-rs…");
+                        flash_only_probe(&sh, &app_elf)?;
+
+                        build_bootloader(&sh, &root)?;
+                        let bl_elf = bootloader_elf(&root);
+                        eprintln!("→ Re-downloading bootloader (restores sector 0)…");
+                        flash_only_probe(&sh, &bl_elf)?;
+
+                        eprintln!("→ Resetting chip…");
+                        reset_probe(&sh)?;
+
+                        eprintln!("→ Attaching RTT (Ctrl+C to exit)…");
+                        attach_rtt_probe(&sh, &app_elf)?;
                     }
-                    flash_probe(&sh, &elf)?;
                 }
             } else {
                 // UF2 drag-and-drop
