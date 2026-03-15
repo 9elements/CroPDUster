@@ -7,6 +7,7 @@ pub mod status;
 pub mod update;
 
 use picoserve::routing::{delete, get, parse_path_segment, post};
+use update::FirmwareUpdateService;
 use picoserve::{AppWithStateBuilder, Router};
 
 use crate::storage::PduDatabase;
@@ -113,8 +114,8 @@ impl AppWithStateBuilder for App {
                 delete(admin::handle_delete_user),
             )
             .route("/api/admin/reset", post(admin::handle_factory_reset))
-            // OTA firmware update
-            .route("/api/update", post(update::handle_firmware_update))
+            // OTA firmware update — streaming service to avoid large body buffer in future
+            .route_service("/api/update", FirmwareUpdateService)
     }
 }
 
