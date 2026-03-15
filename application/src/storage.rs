@@ -1,6 +1,6 @@
 //! ekv-based persistent storage for PDU configuration.
 //!
-//! Flash layout: CONFIG_START (0x10087000), 64 × 4KB pages.
+//! Flash layout: CONFIG_START (0x100A8000), 64 × 4KB pages.
 //! ekv requires lexicographically-ascending key order within a write transaction.
 //!
 //! Note: ekv depends on embassy-sync 0.6.x, which is a different crate version

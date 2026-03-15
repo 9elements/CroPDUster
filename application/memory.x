@@ -3,9 +3,9 @@ MEMORY
   /* NOTE 1 K = 1 KiBi = 1024 bytes */
   BOOT2                             : ORIGIN = 0x10000000, LENGTH = 0x100
   BOOTLOADER_STATE                  : ORIGIN = 0x10006000, LENGTH = 4K
-  FLASH                             : ORIGIN = 0x10007000, LENGTH = 256K
-  DFU                               : ORIGIN = 0x10047000, LENGTH = 256K
-  CONFIG                            : ORIGIN = 0x10087000, LENGTH = 256K
+  FLASH                             : ORIGIN = 0x10007000, LENGTH = 320K
+  DFU                               : ORIGIN = 0x10057000, LENGTH = 324K
+  CONFIG                            : ORIGIN = 0x100A8000, LENGTH = 256K
 
   /* Pick one of the two options for RAM layout     */
 
@@ -25,7 +25,7 @@ __bootloader_state_start = ORIGIN(BOOTLOADER_STATE) - ORIGIN(BOOT2);
 __bootloader_state_end = ORIGIN(BOOTLOADER_STATE) + LENGTH(BOOTLOADER_STATE) - ORIGIN(BOOT2);
 
 __bootloader_dfu_start = ORIGIN(DFU) - ORIGIN(BOOT2);
-__bootloader_dfu_end = ORIGIN(DFU) + LENGTH(DFU) - ORIGIN(BOOT2);
+__bootloader_dfu_end   = ORIGIN(DFU) + LENGTH(DFU) - ORIGIN(BOOT2);
 
 __bootloader_config_start = ORIGIN(CONFIG) - ORIGIN(BOOT2);
-__bootloader_config_end   = ORIGIN(CONFIG) + LENGTH(CONFIG) - ORIGIN(BOOT2);
+__bootloader_config_end   = ORIGIN(CONFIG)  + LENGTH(CONFIG) - ORIGIN(BOOT2);

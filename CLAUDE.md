@@ -145,9 +145,9 @@ The flash is partitioned as follows (see `memory.x` files):
 - **BOOT2**: `0x10000000` - `0x100` (256 bytes) - RP2040 second-stage bootloader
 - **Bootloader Flash**: `0x10000100` - 24KB - Bootloader code
 - **BOOTLOADER_STATE**: `0x10006000` - 4KB - Bootloader state/metadata
-- **ACTIVE**: `0x10007000` - 256KB - Currently running application
-- **DFU**: `0x10047000` - 256KB - Staged firmware update
-- **CONFIG**: `0x10087000` - 256KB - ekv key-value database
+- **ACTIVE**: `0x10007000` - 320KB - Currently running application
+- **DFU**: `0x10057000` - 324KB - Staged firmware update (must be ≥ ACTIVE + 4KB per embassy-boot swap algorithm)
+- **CONFIG**: `0x100A8000` - 256KB - ekv key-value database
 
 ### Bootloader Operation
 

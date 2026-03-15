@@ -5,10 +5,10 @@ pub const FLASH_SIZE: usize = 2 * 1024 * 1024; // 2MB
 
 // Flash layout (must match memory.x)
 pub const ACTIVE_START: u32 = 0x10007000;
-pub const ACTIVE_SIZE: u32 = 256 * 1024;
-pub const DFU_START: u32 = 0x10047000;
-pub const DFU_SIZE: u32 = 256 * 1024;
-pub const CONFIG_START: u32 = 0x10087000;
+pub const ACTIVE_SIZE: u32 = 320 * 1024;
+pub const DFU_START: u32 = 0x10057000;
+pub const DFU_SIZE: u32 = 324 * 1024;
+pub const CONFIG_START: u32 = 0x100A8000;
 pub const CONFIG_SIZE: u32 = 256 * 1024;
 
 // ekv: 256KB / 4096 bytes per page = 64 pages
