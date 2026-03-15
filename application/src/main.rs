@@ -33,7 +33,11 @@ use embassy_time::{Duration, Timer};
 use embedded_hal_bus::spi::ExclusiveDevice;
 use picoserve::AppWithStateBuilder;
 use static_cell::StaticCell;
-use {defmt_rtt as _, panic_reset as _};
+use defmt_rtt as _;
+#[cfg(feature = "panic-reset")]
+use panic_reset as _;
+#[cfg(feature = "panic-probe")]
+use panic_probe as _;
 
 use config::{FLASH_SIZE, SPI_FREQ_HZ};
 use gpio::gpio_task;
@@ -80,6 +84,12 @@ async fn net_task(mut runner: embassy_net::Runner<'static, Device<'static>>) -> 
 async fn main(spawner: Spawner) {
     // 1. Init embassy-rp HAL
     let p = embassy_rp::init(Default::default());
+
+    // Give probe-rs time to attach RTT before any defmt output.
+    // Only compiled in for debug builds; has no effect in production.
+    #[cfg(feature = "debug")]
+    Timer::after_millis(10).await;
+
     let mut rng = RoscRng;
 
     // 2. Factory reset check — hold PIN_26 low at boot to trigger reset
