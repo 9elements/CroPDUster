@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  workflow_dispatch:
+  release:
+    types:
+      - created
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digests: ${{ steps.hash.outputs.digests }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install tools
+        run: cargo install flip-link elf2uf2-rs
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release
+      - name: Build release artifacts
+        run: cargo xtask dist
+      - name: Generate subject digests for provenance
+        id: hash
+        run: |
+          set -euo pipefail
+          echo "digests=$(sha256sum \
+            build/combined.uf2 \
+            build/application.uf2 \
+            build/bootloader.uf2 \
+            | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-release
+          path: |
+            build/combined.uf2
+            build/application.uf2
+            build/bootloader.uf2
+
+  provenance:
+    needs: build
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.digests }}"
+      upload-assets: true
