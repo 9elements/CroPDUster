@@ -1,0 +1,125 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.head_ref || github.sha }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      commits: ${{ steps.commits.outputs.hashes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Get commit hashes
+        id: commits
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "hashes=[$(git log -z --pretty=format:"'%H'," \
+              ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }} \
+              | sed 's/.$//')]" >> "$GITHUB_OUTPUT"
+          else
+            echo "hashes=['${{ github.sha }}']" >> "$GITHUB_OUTPUT"
+          fi
+
+  commit-lint:
+    name: Conventional Commits
+    needs: generate-matrix
+    if: github.event_name == 'pull_request'
+    strategy:
+      matrix:
+        commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.commit }}
+      - uses: bugbundle/commits@v1.1.0
+
+  rustfmt:
+    name: Rustfmt
+    needs: generate-matrix
+    strategy:
+      matrix:
+        commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.commit }}
+      - name: Check formatting
+        run: cargo fmt -- --check
+
+  clippy-xtask:
+    name: Clippy (xtask)
+    needs: generate-matrix
+    strategy:
+      matrix:
+        commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.commit }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: clippy-xtask
+      - name: Clippy xtask
+        run: cargo clippy -p xtask -- -D warnings
+
+  clippy-embedded:
+    name: Clippy (embedded)
+    needs: generate-matrix
+    strategy:
+      matrix:
+        commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.commit }}
+      - name: Install flip-link
+        run: cargo install flip-link
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: clippy-embedded
+      - name: Clippy application and bootloader
+        run: |
+          cargo clippy -p pdu-rp-application --target thumbv6m-none-eabi -- -D warnings
+          cargo clippy -p pdu-rp-bootloader --target thumbv6m-none-eabi -- -D warnings
+
+  cargo-deny:
+    name: Cargo Deny
+    needs: generate-matrix
+    strategy:
+      matrix:
+        commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.commit }}
+      - uses: EmbarkStudios/cargo-deny-action@v2
