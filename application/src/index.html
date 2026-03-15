@@ -6,93 +6,143 @@
 <title>PDU Controller</title>
 <style>
 :root{
-  --bg:#1a1a2e;--surface:#16213e;--card:#0f3460;--accent:#e94560;
-  --on:#4ade80;--off:#6b7280;--text:#e2e8f0;--muted:#94a3b8;
+  --bg:#000504;--surface:#0f1518;--card:#131a1f;--border:#313945;
+  --accent:#e9fc53;--accent-dim:#b8cc32;--mint:#73facf;
+  --on:#73facf;--off:#717780;--text:#fff;--muted:#9d9d9f;
+  --danger:#dc2626;--danger-bg:#450a0a;
   --radius:10px;--transition:0.2s ease;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  background:var(--bg);color:var(--text);min-height:100vh;padding:16px}
+  background:var(--bg);color:var(--text);min-height:100vh;
+  padding:24px 16px;display:flex;flex-direction:column;align-items:center}
 a,button{cursor:pointer}
+/* ── Wrapper ── */
+.wrapper{width:100%;max-width:720px}
 /* ── Modal ── */
-.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.7);
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,4,5,.85);
   display:flex;align-items:center;justify-content:center;z-index:100}
-.modal{background:var(--surface);border-radius:var(--radius);padding:28px;
-  width:min(360px,92vw);box-shadow:0 8px 32px rgba(0,0,0,.5)}
-.modal h2{margin-bottom:18px;font-size:1.25rem;color:var(--text)}
+.modal{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:32px;
+  width:min(380px,92vw);box-shadow:0 8px 32px rgba(0,0,0,.6)}
+.modal h2{margin-bottom:20px;font-size:1.25rem;color:var(--text);text-align:center}
 .modal label{display:block;margin-bottom:4px;font-size:.85rem;color:var(--muted)}
-.modal input{width:100%;padding:10px 12px;background:var(--card);border:1px solid #334155;
-  border-radius:6px;color:var(--text);font-size:.95rem;margin-bottom:14px}
+.modal input{width:100%;padding:10px 12px;background:var(--card);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);font-size:.95rem;margin-bottom:14px;
+  transition:border-color var(--transition)}
 .modal input:focus{outline:none;border-color:var(--accent)}
 .modal .btn-primary{width:100%;margin-top:4px}
+.modal p{text-align:center}
 .hidden{display:none!important}
 /* ── Buttons ── */
-.btn{padding:8px 16px;border:none;border-radius:6px;font-size:.9rem;
-  font-weight:600;transition:opacity var(--transition),transform var(--transition)}
+.btn{padding:8px 18px;border:none;border-radius:6px;font-size:.9rem;
+  font-weight:600;transition:opacity var(--transition),transform var(--transition),
+  background var(--transition)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn:not(:disabled):hover{opacity:.85}
+.btn:not(:disabled):hover{opacity:.88}
 .btn:not(:disabled):active{transform:scale(.97)}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-secondary{background:#334155;color:var(--text)}
-.btn-danger{background:#dc2626;color:#fff}
+.btn-primary{background:var(--accent);color:var(--bg)}
+.btn-primary:not(:disabled):hover{background:var(--accent-dim)}
+.btn-secondary{background:var(--border);color:var(--text)}
+.btn-secondary:not(:disabled):hover{background:#3d4652}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:not(:disabled):hover{background:#b91c1c}
 /* ── Header ── */
 header{display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:20px;flex-wrap:wrap;gap:8px}
-header h1{font-size:1.3rem;color:var(--text)}
+  margin-bottom:24px;flex-wrap:wrap;gap:8px;
+  padding-bottom:16px;border-bottom:1px solid var(--border)}
+header h1{font-size:1.3rem;color:var(--text);font-weight:700;
+  letter-spacing:-.01em}
+header h1 span{color:var(--accent)}
 #status-bar{font-size:.8rem;color:var(--muted)}
 /* ── Sections ── */
-.section{background:var(--surface);border-radius:var(--radius);padding:18px;margin-bottom:16px}
-.section-title{font-size:1rem;font-weight:700;color:var(--muted);
-  text-transform:uppercase;letter-spacing:.05em;margin-bottom:14px}
+.section{background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;margin-bottom:16px}
+.section-title{font-size:.8rem;font-weight:700;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
 /* ── Relay grid ── */
 .relay-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.relay-card{background:var(--card);border-radius:var(--radius);padding:14px;
-  display:flex;flex-direction:column;gap:8px}
+.relay-card{background:var(--card);border:1px solid var(--border);
+  border-radius:var(--radius);padding:14px;
+  display:flex;flex-direction:column;gap:8px;text-align:center}
 .relay-name{font-size:.85rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .relay-toggle{padding:10px;font-size:.9rem;border-radius:6px;border:none;
-  font-weight:700;transition:background var(--transition),color var(--transition)}
-.relay-toggle.on{background:var(--on);color:#052e16}
+  font-weight:700;transition:background var(--transition),color var(--transition),
+  box-shadow var(--transition)}
+.relay-toggle.on{background:var(--on);color:var(--bg);
+  box-shadow:0 0 12px rgba(115,250,207,.3)}
 .relay-toggle.off{background:var(--off);color:#1f2937}
 .relay-toggle:disabled{opacity:.35;cursor:not-allowed}
 .relay-current{font-size:.75rem;color:var(--muted)}
 /* ── Sensors ── */
-.sensor-bar{display:flex;gap:20px;flex-wrap:wrap}
-.sensor{font-size:.95rem}
+.sensor-bar{display:flex;gap:24px;flex-wrap:wrap;justify-content:center}
+.sensor{font-size:.95rem;color:var(--muted)}
 .sensor span{color:var(--text);font-weight:600}
 /* ── Admin accordion ── */
 .accordion-header{display:flex;justify-content:space-between;align-items:center;
-  cursor:pointer;user-select:none}
-.accordion-header:hover{color:var(--text)}
-.accordion-body{margin-top:16px}
+  cursor:pointer;user-select:none;padding:2px 0}
+.accordion-header:hover .section-title{color:var(--mint)}
+.accordion-header .caret{color:var(--accent);transition:transform var(--transition);font-size:.85rem}
+.accordion-body{margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+/* ── Admin sub-sections ── */
+.admin-block{margin-bottom:24px}
+.admin-block:last-child{margin-bottom:0}
+.admin-block-title{font-weight:600;margin-bottom:12px;font-size:.9rem;color:var(--text)}
 .form-row{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
 .form-row label{font-size:.85rem;color:var(--muted);min-width:80px}
 .form-row input[type=text],.form-row input[type=password]{
-  flex:1;padding:7px 10px;background:var(--card);border:1px solid #334155;
-  border-radius:6px;color:var(--text);font-size:.9rem}
+  flex:1;padding:7px 10px;background:var(--card);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);font-size:.9rem;
+  transition:border-color var(--transition)}
 .form-row input:focus{outline:none;border-color:var(--accent)}
+/* ── Table ── */
 table{width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:10px}
-th{text-align:left;padding:6px 8px;color:var(--muted);border-bottom:1px solid #334155}
-td{padding:6px 8px;border-bottom:1px solid #1e293b}
+th{text-align:left;padding:6px 8px;color:var(--accent);font-size:.75rem;
+  text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border)}
+td{padding:6px 8px;border-bottom:1px solid #1a2228}
 td input[type=text]{background:transparent;border:none;color:var(--text);
   font-size:.85rem;width:100%;outline:none}
-td input[type=checkbox]{accent-color:var(--accent)}
+td input[type=text]:focus{color:var(--accent)}
+/* ── Checkboxes ── */
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+/* ── File input ── */
+input[type=file]{color:var(--muted);font-size:.85rem;padding:6px 0}
+input[type=file]::file-selector-button{
+  background:var(--border);color:var(--text);border:none;
+  padding:6px 14px;border-radius:6px;font-size:.85rem;font-weight:600;
+  cursor:pointer;margin-right:10px;transition:background var(--transition)}
+input[type=file]::file-selector-button:hover{background:#3d4652}
+/* ── Progress bar ── */
 .progress-wrap{margin-top:10px;display:none}
 .progress-wrap.active{display:block}
-progress{width:100%;height:10px;border-radius:5px;border:none}
-progress::-webkit-progress-bar{background:#334155;border-radius:5px}
-progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
-.msg{padding:8px 12px;border-radius:6px;font-size:.85rem;margin-top:8px;display:none}
+progress{width:100%;height:8px;border-radius:4px;border:none;overflow:hidden}
+progress::-webkit-progress-bar{background:var(--border);border-radius:4px}
+progress::-webkit-progress-value{background:linear-gradient(90deg,var(--mint),var(--accent));
+  border-radius:4px}
+progress::-moz-progress-bar{background:linear-gradient(90deg,var(--mint),var(--accent));
+  border-radius:4px}
+/* ── Messages ── */
+.msg{padding:8px 12px;border-radius:6px;font-size:.85rem;margin-top:8px;display:none;
+  text-align:center}
 .msg.active{display:block}
-.msg.ok{background:#052e16;color:var(--on);border:1px solid var(--on)}
-.msg.err{background:#450a0a;color:#fca5a5;border:1px solid #dc2626}
+.msg.ok{background:rgba(115,250,207,.1);color:var(--on);border:1px solid rgba(115,250,207,.3)}
+.msg.err{background:var(--danger-bg);color:#fca5a5;border:1px solid var(--danger)}
+/* ── Port checkboxes row ── */
+.port-cb-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.port-cb-row span{font-size:.8rem;color:var(--muted);margin-right:2px}
+.port-cb-label{font-size:.8rem;display:flex;align-items:center;gap:3px;color:var(--muted)}
+/* ── Footer ── */
+.footer{margin-top:auto;padding-top:24px;text-align:center;font-size:.75rem;color:var(--muted)}
+.footer a{color:var(--mint);text-decoration:none}
+.footer a:hover{color:var(--accent)}
 </style>
 </head>
 <body>
 
-<!-- ══ Login modal ══════════════════════════════════════════════ -->
+<!-- Login modal -->
 <div class="modal-backdrop" id="login-modal">
   <div class="modal">
-    <h2>PDU Login</h2>
+    <h2><span style="color:var(--accent)">PDU</span> Login</h2>
     <label>Username</label>
     <input type="text" id="login-user" autocomplete="username" placeholder="admin"/>
     <label>Password</label>
@@ -102,7 +152,7 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
   </div>
 </div>
 
-<!-- ══ First-login password change modal ════════════════════════ -->
+<!-- First-login password change modal -->
 <div class="modal-backdrop hidden" id="firstlogin-modal">
   <div class="modal">
     <h2>Set New Password</h2>
@@ -118,10 +168,10 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
   </div>
 </div>
 
-<!-- ══ Main UI ═══════════════════════════════════════════════════ -->
-<div id="app" class="hidden">
+<!-- Main UI -->
+<div id="app" class="hidden wrapper">
   <header>
-    <h1>PDU Controller</h1>
+    <h1><span>Crop</span>DUster</h1>
     <div id="status-bar">v<span id="sb-ver">-</span></div>
   </header>
 
@@ -137,8 +187,8 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
   <div class="section">
     <div class="section-title">Sensors</div>
     <div class="sensor-bar" id="sensor-bar">
-      <div class="sensor">🌡 <span id="s-temp">—</span> °C</div>
-      <div class="sensor">⚡ <span id="s-volt">—</span> V</div>
+      <div class="sensor">Temp: <span id="s-temp">&mdash;</span> &deg;C</div>
+      <div class="sensor">Voltage: <span id="s-volt">&mdash;</span> V</div>
     </div>
   </div>
 
@@ -146,13 +196,13 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
   <div class="section hidden" id="admin-section">
     <div class="accordion-header" onclick="toggleAdmin()">
       <span class="section-title" style="margin:0">Admin Panel</span>
-      <span id="admin-caret">▶</span>
+      <span class="caret" id="admin-caret">&#9654;</span>
     </div>
     <div class="accordion-body hidden" id="admin-body">
 
       <!-- Change password -->
-      <div style="margin-bottom:20px">
-        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Change My Password</div>
+      <div class="admin-block">
+        <div class="admin-block-title">Change My Password</div>
         <div class="form-row">
           <label>Old</label>
           <input type="password" id="cp-old"/>
@@ -166,8 +216,8 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
       </div>
 
       <!-- Port names -->
-      <div style="margin-bottom:20px">
-        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Port Names</div>
+      <div class="admin-block">
+        <div class="admin-block-title">Port Names</div>
         <table>
           <thead><tr><th>#</th><th>Name</th><th></th></tr></thead>
           <tbody id="port-names-body"><!-- populated by JS --></tbody>
@@ -175,30 +225,30 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
       </div>
 
       <!-- User management -->
-      <div style="margin-bottom:20px">
-        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Users</div>
-        <div style="font-size:.8rem;color:var(--muted);margin-bottom:6px">
-          New user:
-        </div>
+      <div class="admin-block">
+        <div class="admin-block-title">Users</div>
+        <div style="font-size:.8rem;color:var(--muted);margin-bottom:8px">New user:</div>
         <div class="form-row">
           <input type="text" id="nu-user" placeholder="username"/>
           <input type="password" id="nu-pass" placeholder="password"/>
         </div>
-        <div class="form-row" id="nu-ports-row" style="flex-wrap:wrap;gap:6px">
+        <div class="form-row port-cb-row" id="nu-ports-row">
           <!-- port checkboxes populated by JS -->
         </div>
         <div class="form-row">
-          <label><input type="checkbox" id="nu-admin"/> Admin</label>
+          <label class="port-cb-label"><input type="checkbox" id="nu-admin"/> Admin</label>
         </div>
         <button class="btn btn-secondary" onclick="doCreateUser()">Create User</button>
         <div class="msg" id="nu-msg"></div>
       </div>
 
       <!-- Firmware update -->
-      <div style="margin-bottom:20px">
-        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Firmware Update</div>
-        <input type="file" id="fw-file" accept=".bin,.uf2" style="color:var(--muted);font-size:.85rem"/>
-        <button class="btn btn-secondary" style="margin-top:8px" onclick="doFirmwareUpload()">Upload</button>
+      <div class="admin-block">
+        <div class="admin-block-title">Firmware Update</div>
+        <input type="file" id="fw-file" accept=".bin,.uf2"/>
+        <div style="margin-top:8px">
+          <button class="btn btn-secondary" onclick="doFirmwareUpload()">Upload</button>
+        </div>
         <div class="progress-wrap" id="fw-progress-wrap">
           <progress id="fw-progress" value="0" max="100"></progress>
         </div>
@@ -206,20 +256,22 @@ progress::-webkit-progress-value{background:var(--accent);border-radius:5px}
       </div>
 
       <!-- Factory reset -->
-      <div>
-        <div style="font-weight:600;margin-bottom:10px;font-size:.9rem">Factory Reset</div>
+      <div class="admin-block">
+        <div class="admin-block-title">Factory Reset</div>
         <button class="btn btn-danger" onclick="doFactoryReset()">Reset to Defaults</button>
         <div class="msg" id="fr-msg"></div>
       </div>
 
     </div>
   </div>
+
+  <div class="footer">
+    <a href="https://9esec.io" target="_blank" rel="noopener">9elements Cyber Security</a>
+  </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════
-// Credential storage (sessionStorage — cleared on tab close)
-// ═══════════════════════════════════════════════════════════════════
+// Credential storage (sessionStorage -- cleared on tab close)
 const SESSION_KEY = 'pdu_creds'; // base64 "user:pass"
 
 function getCreds() { return sessionStorage.getItem(SESSION_KEY); }
@@ -231,9 +283,7 @@ function authHeader() {
   return c ? { 'Authorization': 'Basic ' + c } : {};
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // API helpers
-// ═══════════════════════════════════════════════════════════════════
 async function api(method, path, body) {
   const opts = { method, headers: { ...authHeader() } };
   if (body !== undefined) {
@@ -252,9 +302,7 @@ function handle401() {
   showMsg('login-err', 'Session expired. Please log in again.', false);
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Message helpers
-// ═══════════════════════════════════════════════════════════════════
 function showMsg(id, text, ok) {
   const el = document.getElementById(id);
   el.textContent = text;
@@ -262,9 +310,7 @@ function showMsg(id, text, ok) {
   setTimeout(() => el.classList.remove('active'), 5000);
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Login
-// ═══════════════════════════════════════════════════════════════════
 async function doLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
@@ -297,16 +343,14 @@ document.getElementById('login-pass').addEventListener('keydown', e => {
   if (e.key === 'Enter') doLogin();
 });
 
-// ═══════════════════════════════════════════════════════════════════
 // First-login password change
-// ═══════════════════════════════════════════════════════════════════
 async function doFirstLogin() {
   const np = document.getElementById('fl-new').value;
   const cp = document.getElementById('fl-confirm').value;
   if (!np) { showMsg('fl-err', 'Enter a new password.', false); return; }
   if (np !== cp) { showMsg('fl-err', 'Passwords do not match.', false); return; }
 
-  // We need the current (old) password — it is still in sessionStorage creds
+  // We need the current (old) password -- it is still in sessionStorage creds
   const creds = atob(getCreds() || '');
   const old = creds.split(':').slice(1).join(':');
 
@@ -326,21 +370,17 @@ async function doFirstLogin() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // App initialisation
-// ═══════════════════════════════════════════════════════════════════
 async function initApp(status) {
   document.getElementById('app').classList.remove('hidden');
   document.getElementById('sb-ver').textContent = status.version || '?';
 
-  // Determine if admin — try fetching a port name (admin endpoints are protected)
+  // Determine if admin -- try fetching a port name (admin endpoints are protected)
   let isAdmin = false;
   try {
     const r = await api('GET', '/api/port/0/name');
     if (r.ok) {
-      // Any user can GET port name; admin detection via status is not available
-      // so we'll optimistically show admin panel and handle 403 silently
-      isAdmin = true; // show admin panel; actual endpoints enforce ACL server-side
+      isAdmin = true;
     }
   } catch(_) {}
 
@@ -356,9 +396,7 @@ async function initApp(status) {
   setInterval(loadSensors, 10000);
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Relay grid
-// ═══════════════════════════════════════════════════════════════════
 const PORT_COUNT = 8;
 
 function buildRelayGrid() {
@@ -414,9 +452,7 @@ async function toggleRelay(pin) {
   } catch(_) {}
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Sensors
-// ═══════════════════════════════════════════════════════════════════
 async function loadSensors() {
   try {
     const r = await api('GET', '/api/sensors');
@@ -434,18 +470,16 @@ async function loadSensors() {
   } catch(_) {}
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Admin accordion
-// ═══════════════════════════════════════════════════════════════════
 function toggleAdmin() {
   const body = document.getElementById('admin-body');
   const caret = document.getElementById('admin-caret');
   const open = !body.classList.contains('hidden');
   body.classList.toggle('hidden', open);
-  caret.textContent = open ? '▶' : '▼';
+  caret.style.transform = open ? '' : 'rotate(90deg)';
 }
 
-// ── Change password ──
+// Change password
 async function doChangePassword() {
   const old = document.getElementById('cp-old').value;
   const np  = document.getElementById('cp-new').value;
@@ -465,7 +499,7 @@ async function doChangePassword() {
   } catch(e) { if (e.message !== '401') showMsg('cp-msg', 'Error.', false); }
 }
 
-// ── Port names ──
+// Port names
 async function buildPortNamesTable() {
   const tbody = document.getElementById('port-names-body');
   tbody.innerHTML = '';
@@ -496,13 +530,13 @@ async function savePortName(i) {
   } catch(_) {}
 }
 
-// ── New user checkboxes ──
+// New user checkboxes
 function buildNewUserPortCheckboxes() {
   const row = document.getElementById('nu-ports-row');
-  row.innerHTML = '<span style="font-size:.8rem;color:var(--muted);margin-right:6px">Ports:</span>';
+  row.innerHTML = '<span>Ports:</span>';
   for (let i = 0; i < PORT_COUNT; i++) {
     const lbl = document.createElement('label');
-    lbl.style.cssText = 'font-size:.8rem;display:flex;align-items:center;gap:3px';
+    lbl.className = 'port-cb-label';
     lbl.innerHTML = `<input type="checkbox" class="nu-port-cb" data-port="${i}" checked/>${i}`;
     row.appendChild(lbl);
   }
@@ -531,7 +565,7 @@ async function doCreateUser() {
   } catch(e) { if (e.message !== '401') showMsg('nu-msg', 'Error.', false); }
 }
 
-// ── Firmware upload ──
+// Firmware upload
 async function doFirmwareUpload() {
   const fileInput = document.getElementById('fw-file');
   if (!fileInput.files || !fileInput.files[0]) {
@@ -572,7 +606,7 @@ async function doFirmwareUpload() {
   xhr.send(file);
 }
 
-// ── Factory reset ──
+// Factory reset
 async function doFactoryReset() {
   if (!confirm('Reset ALL settings to factory defaults? This cannot be undone.')) return;
   try {
@@ -581,9 +615,7 @@ async function doFactoryReset() {
   } catch(e) { if (e.message !== '401') showMsg('fr-msg', 'Error.', false); }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// Startup — check existing session
-// ═══════════════════════════════════════════════════════════════════
+// Startup -- check existing session
 (async function startup() {
   if (getCreds()) {
     try {
