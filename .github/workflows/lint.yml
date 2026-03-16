@@ -50,6 +50,7 @@ jobs:
     needs: generate-matrix
     if: github.event_name == 'pull_request'
     strategy:
+      fail-fast: false
       matrix:
         commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
     runs-on: ubuntu-latest
@@ -63,6 +64,7 @@ jobs:
     name: Rustfmt
     needs: generate-matrix
     strategy:
+      fail-fast: false
       matrix:
         commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
     runs-on: ubuntu-latest
@@ -77,6 +79,7 @@ jobs:
     name: Clippy (xtask)
     needs: generate-matrix
     strategy:
+      fail-fast: false
       matrix:
         commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
     runs-on: ubuntu-latest
@@ -94,6 +97,7 @@ jobs:
     name: Clippy (embedded)
     needs: generate-matrix
     strategy:
+      fail-fast: false
       matrix:
         commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
     runs-on: ubuntu-latest
@@ -115,6 +119,7 @@ jobs:
     name: Cargo Deny
     needs: generate-matrix
     strategy:
+      fail-fast: false
       matrix:
         commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
     runs-on: ubuntu-latest
