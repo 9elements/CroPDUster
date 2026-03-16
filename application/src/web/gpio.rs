@@ -75,16 +75,29 @@ pub async fn handle_gpio_toggle(pin: u8, user: AuthUser) -> Json<GpioToggleRespo
     if pin >= 8 || (user.allowed_ports & (1 << pin) == 0) {
         let state_val = {
             let states = GPIO_STATES.lock().await;
-            if (pin as usize) < 8 { states[pin as usize] } else { false }
+            if (pin as usize) < 8 {
+                states[pin as usize]
+            } else {
+                false
+            }
         };
-        return Json(GpioToggleResponse { pin, state: state_val });
+        return Json(GpioToggleResponse {
+            pin,
+            state: state_val,
+        });
     }
 
     GPIO_SIGNAL.signal(GpioCommand::Toggle(pin));
     embassy_time::Timer::after_millis(1).await;
-    let state_val = { let states = GPIO_STATES.lock().await; states[pin as usize] };
+    let state_val = {
+        let states = GPIO_STATES.lock().await;
+        states[pin as usize]
+    };
 
-    Json(GpioToggleResponse { pin, state: state_val })
+    Json(GpioToggleResponse {
+        pin,
+        state: state_val,
+    })
 }
 
 // ── POST /api/gpio/:pin/set ────────────────────────────────────────────────────
@@ -97,14 +110,27 @@ pub async fn handle_gpio_set(
     if pin >= 8 || (user.allowed_ports & (1 << pin) == 0) {
         let state_val = {
             let states = GPIO_STATES.lock().await;
-            if (pin as usize) < 8 { states[pin as usize] } else { false }
+            if (pin as usize) < 8 {
+                states[pin as usize]
+            } else {
+                false
+            }
         };
-        return Json(GpioToggleResponse { pin, state: state_val });
+        return Json(GpioToggleResponse {
+            pin,
+            state: state_val,
+        });
     }
 
     GPIO_SIGNAL.signal(GpioCommand::Set(pin, body.state));
     embassy_time::Timer::after_millis(1).await;
-    let state_val = { let states = GPIO_STATES.lock().await; states[pin as usize] };
+    let state_val = {
+        let states = GPIO_STATES.lock().await;
+        states[pin as usize]
+    };
 
-    Json(GpioToggleResponse { pin, state: state_val })
+    Json(GpioToggleResponse {
+        pin,
+        state: state_val,
+    })
 }

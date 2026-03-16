@@ -16,6 +16,7 @@ mod storage;
 mod web;
 
 use defmt::*;
+use defmt_rtt as _;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
 use embassy_net_wiznet::chip::W5500;
@@ -31,13 +32,12 @@ use embassy_rp::spi::{Async, Config as SpiConfig, Spi};
 use embassy_rp::watchdog::Watchdog;
 use embassy_time::{Duration, Timer};
 use embedded_hal_bus::spi::ExclusiveDevice;
-use picoserve::AppWithStateBuilder;
-use static_cell::StaticCell;
-use defmt_rtt as _;
-#[cfg(feature = "panic-reset")]
-use panic_reset as _;
 #[cfg(feature = "panic-probe")]
 use panic_probe as _;
+#[cfg(feature = "panic-reset")]
+use panic_reset as _;
+use picoserve::AppWithStateBuilder;
+use static_cell::StaticCell;
 
 use config::{FLASH_SIZE, SPI_FREQ_HZ};
 use gpio::gpio_task;
@@ -98,8 +98,7 @@ async fn main(spawner: Spawner) {
     drop(factory_reset_pin);
 
     // 3. Init flash → ekv database (async flash using DMA_CH2)
-    let flash: Flash<'static, _, FlashAsync, FLASH_SIZE> =
-        Flash::new(p.FLASH, p.DMA_CH2, Irqs);
+    let flash: Flash<'static, _, FlashAsync, FLASH_SIZE> = Flash::new(p.FLASH, p.DMA_CH2, Irqs);
     let random_seed_u32 = rng.next_u32();
     let db = init_database(flash, random_seed_u32).await;
 
@@ -129,14 +128,10 @@ async fn main(spawner: Spawner) {
     let mut spi_cfg = SpiConfig::default();
     spi_cfg.frequency = SPI_FREQ_HZ;
     let spi = Spi::new(
-        p.SPI0,
-        p.PIN_18, // CLK
+        p.SPI0, p.PIN_18, // CLK
         p.PIN_19, // MOSI
         p.PIN_16, // MISO
-        p.DMA_CH0,
-        p.DMA_CH1,
-        Irqs,
-        spi_cfg,
+        p.DMA_CH0, p.DMA_CH1, Irqs, spi_cfg,
     );
     let cs = Output::new(p.PIN_17, Level::High);
     let w5500_int = Input::new(p.PIN_21, Pull::Up);

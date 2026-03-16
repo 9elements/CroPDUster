@@ -175,10 +175,7 @@ pub async fn handle_set_user_ports(
 
 // ── Delete user ────────────────────────────────────────────────────────────────
 
-pub async fn handle_delete_user(
-    username: heapless::String<32>,
-    _admin: AdminUser,
-) -> ApiResult {
+pub async fn handle_delete_user(username: heapless::String<32>, _admin: AdminUser) -> ApiResult {
     let pw_key = user_pw_key(username.as_str());
     let ports_key = user_ports_key(username.as_str());
     let admin_key = user_admin_key(username.as_str());

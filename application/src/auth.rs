@@ -95,9 +95,7 @@ impl<'r> FromRequestParts<'r, ()> for AuthUser {
             core::str::from_utf8(&decoded[..n]).map_err(|_| AuthError::InvalidEncoding)?;
 
         // 4. Split "username:password"
-        let colon = decoded_str
-            .find(':')
-            .ok_or(AuthError::InvalidEncoding)?;
+        let colon = decoded_str.find(':').ok_or(AuthError::InvalidEncoding)?;
         let username = &decoded_str[..colon];
         let password = &decoded_str[colon + 1..];
 
