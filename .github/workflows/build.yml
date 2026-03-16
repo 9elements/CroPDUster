@@ -49,6 +49,7 @@ jobs:
     name: Build
     needs: generate-matrix
     strategy:
+      fail-fast: false
       matrix:
         commit: ${{ fromJson(needs.generate-matrix.outputs.commits) }}
     runs-on: ubuntu-latest
@@ -69,7 +70,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ matrix.commit }}
-          path: |
+          path: build/
+|
             build/combined.uf2
             build/application.uf2
             build/bootloader.uf2

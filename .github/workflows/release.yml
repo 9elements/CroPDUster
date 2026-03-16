@@ -15,7 +15,7 @@ jobs:
     outputs:
       digests: ${{ steps.hash.outputs.digests }}
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
@@ -36,14 +36,21 @@ jobs:
             build/application.uf2 \
             build/bootloader.uf2 \
             | base64 -w0)" >> "$GITHUB_OUTPUT"
-      - name: Upload artifacts
+      - name: Upload artifacts to workflow
         uses: actions/upload-artifact@v4
         with:
           name: firmware-release
-          path: |
-            build/combined.uf2
-            build/application.uf2
-            build/bootloader.uf2
+          path: build/
+      - name: Attach UF2 files to GitHub Release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            build/combined.uf2 \
+            build/application.uf2 \
+            build/bootloader.uf2 \
+            --clobber
 
   provenance:
     needs: build
