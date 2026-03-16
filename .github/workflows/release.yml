@@ -18,11 +18,13 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Install tools
-        run: cargo install flip-link elf2uf2-rs
       - uses: Swatinem/rust-cache@v2
         with:
           key: release
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev
+      - name: Install tools
+        run: cargo install --locked flip-link elf2uf2-rs
       - name: Build release artifacts
         run: cargo xtask dist
       - name: Generate subject digests for provenance
