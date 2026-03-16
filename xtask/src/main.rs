@@ -238,7 +238,7 @@ const UF2_PAYLOAD_SIZE: usize = 256;
 
 /// Convert a flat binary image to UF2 format for RP2040.
 fn binary_to_uf2(data: &[u8], base_addr: u32) -> Vec<u8> {
-    let num_blocks = (data.len() + UF2_PAYLOAD_SIZE - 1) / UF2_PAYLOAD_SIZE;
+    let num_blocks = data.len().div_ceil(UF2_PAYLOAD_SIZE);
     let mut uf2 = Vec::with_capacity(num_blocks * 512);
 
     for (i, chunk) in data.chunks(UF2_PAYLOAD_SIZE).enumerate() {

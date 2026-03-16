@@ -111,8 +111,6 @@ pub async fn init_database(
 // ── Schema key helpers ─────────────────────────────────────────────────────────
 
 /// ekv key constants (sorted: "admin/..." < "init" < "p/..." < "u/...")
-
-pub const KEY_INIT: &[u8] = b"init";
 pub const KEY_ADMIN_FIRST_LOGIN: &[u8] = b"admin/first_login";
 
 /// Build port name key: `b"p/{port}/name"` (port 0–7)

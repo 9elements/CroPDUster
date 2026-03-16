@@ -58,16 +58,17 @@ bind_interrupts!(struct Irqs {
 
 // ── Ethernet task ──────────────────────────────────────────────────────────────
 
+/// Type alias for the W5500 runner to avoid repeating the full generic signature.
+type EthernetRunner = Runner<
+    'static,
+    W5500,
+    ExclusiveDevice<Spi<'static, SPI0, Async>, Output<'static>, embassy_time::Delay>,
+    Input<'static>,
+    Output<'static>,
+>;
+
 #[embassy_executor::task]
-async fn ethernet_task(
-    runner: Runner<
-        'static,
-        W5500,
-        ExclusiveDevice<Spi<'static, SPI0, Async>, Output<'static>, embassy_time::Delay>,
-        Input<'static>,
-        Output<'static>,
-    >,
-) -> ! {
+async fn ethernet_task(runner: EthernetRunner) -> ! {
     runner.run().await
 }
 
@@ -112,17 +113,19 @@ async fn main(spawner: Spawner) {
     web::init_db(db);
 
     // 4. GPIO outputs for 8 relay outputs (PIN_0 – PIN_7)
-    let pin0 = Output::new(p.PIN_0, Level::Low);
-    let pin1 = Output::new(p.PIN_1, Level::Low);
-    let pin2 = Output::new(p.PIN_2, Level::Low);
-    let pin3 = Output::new(p.PIN_3, Level::Low);
-    let pin4 = Output::new(p.PIN_4, Level::Low);
-    let pin5 = Output::new(p.PIN_5, Level::Low);
-    let pin6 = Output::new(p.PIN_6, Level::Low);
-    let pin7 = Output::new(p.PIN_7, Level::Low);
+    let relay_pins = [
+        Output::new(p.PIN_0, Level::Low),
+        Output::new(p.PIN_1, Level::Low),
+        Output::new(p.PIN_2, Level::Low),
+        Output::new(p.PIN_3, Level::Low),
+        Output::new(p.PIN_4, Level::Low),
+        Output::new(p.PIN_5, Level::Low),
+        Output::new(p.PIN_6, Level::Low),
+        Output::new(p.PIN_7, Level::Low),
+    ];
 
     // 6. Spawn GPIO task
-    spawner.spawn(gpio_task(pin0, pin1, pin2, pin3, pin4, pin5, pin6, pin7).unwrap());
+    spawner.spawn(gpio_task(relay_pins).unwrap());
 
     // 7. Init W5500 Ethernet (SPI0, DMA_CH0 TX, DMA_CH1 RX)
     let mut spi_cfg = SpiConfig::default();
