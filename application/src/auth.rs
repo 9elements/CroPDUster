@@ -153,6 +153,8 @@ impl<'r> FromRequestParts<'r, ()> for AuthUser {
 // ── AdminUser ─────────────────────────────────────────────────────────────────
 
 /// Wrapper extractor that requires the authenticated user to be an admin.
+/// The inner `AuthUser` is available for handlers that need it via `.0`.
+#[allow(dead_code)]
 pub struct AdminUser(pub AuthUser);
 
 /// Returned when an authenticated-but-non-admin user tries to access an admin route.
