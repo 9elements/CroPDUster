@@ -155,24 +155,170 @@ fn build_application_debug(sh: &Shell, root: &Path) -> Result<()> {
     Ok(())
 }
 
-// ── Combine ───────────────────────────────────────────────────────────────────
+// ── ELF parsing ──────────────────────────────────────────────────────────────
 
-fn combine(sh: &Shell, root: &Path) -> Result<()> {
+/// Extract PT_LOAD segments from a 32-bit little-endian ELF and produce a flat
+/// binary image.  Only segments with `p_paddr >= base_addr` and non-zero
+/// `p_filesz` are included.  Gaps are filled with `0xFF`.
+fn elf_to_binary(elf_path: &Path, base_addr: u32) -> Result<Vec<u8>> {
+    let elf =
+        std::fs::read(elf_path).with_context(|| format!("reading ELF {}", elf_path.display()))?;
+
+    if elf.len() < 0x34 || &elf[..4] != b"\x7fELF" {
+        bail!("not a valid ELF file: {}", elf_path.display());
+    }
+
+    let e_phoff = u32::from_le_bytes(elf[0x1c..0x20].try_into().unwrap()) as usize;
+    let e_phnum = u16::from_le_bytes(elf[0x2c..0x2e].try_into().unwrap()) as usize;
+
+    struct Segment {
+        offset: usize,
+        data: Vec<u8>,
+    }
+
+    let mut segments: Vec<Segment> = Vec::new();
+    let mut max_extent: usize = 0;
+
+    for i in 0..e_phnum {
+        let ph = e_phoff + i * 32;
+        if ph + 32 > elf.len() {
+            break;
+        }
+        let p_type = u32::from_le_bytes(elf[ph..ph + 4].try_into().unwrap());
+        if p_type != 1 {
+            continue; // skip non-PT_LOAD
+        }
+        let p_offset = u32::from_le_bytes(elf[ph + 4..ph + 8].try_into().unwrap()) as usize;
+        let p_paddr = u32::from_le_bytes(elf[ph + 12..ph + 16].try_into().unwrap());
+        let p_filesz = u32::from_le_bytes(elf[ph + 16..ph + 20].try_into().unwrap()) as usize;
+
+        if p_paddr < base_addr || p_filesz == 0 {
+            continue;
+        }
+
+        let off = (p_paddr - base_addr) as usize;
+        let end = p_offset + p_filesz;
+        if end > elf.len() {
+            bail!(
+                "ELF segment at paddr {:#010x} extends past end of file",
+                p_paddr
+            );
+        }
+
+        segments.push(Segment {
+            offset: off,
+            data: elf[p_offset..end].to_vec(),
+        });
+        max_extent = max_extent.max(off + p_filesz);
+    }
+
+    if segments.is_empty() {
+        bail!(
+            "no loadable segments with paddr >= {:#010x} in {}",
+            base_addr,
+            elf_path.display()
+        );
+    }
+
+    let mut bin = vec![0xFFu8; max_extent];
+    for seg in &segments {
+        bin[seg.offset..seg.offset + seg.data.len()].copy_from_slice(&seg.data);
+    }
+    Ok(bin)
+}
+
+// ── UF2 generation ───────────────────────────────────────────────────────────
+
+const UF2_MAGIC0: u32 = 0x0A324655;
+const UF2_MAGIC1: u32 = 0x9E5D5157;
+const UF2_MAGIC_END: u32 = 0x0AB16F30;
+const UF2_FLAG_FAMILY: u32 = 0x00002000;
+const RP2040_FAMILY_ID: u32 = 0xe48bff56;
+const UF2_PAYLOAD_SIZE: usize = 256;
+
+/// Convert a flat binary image to UF2 format for RP2040.
+fn binary_to_uf2(data: &[u8], base_addr: u32) -> Vec<u8> {
+    let num_blocks = (data.len() + UF2_PAYLOAD_SIZE - 1) / UF2_PAYLOAD_SIZE;
+    let mut uf2 = Vec::with_capacity(num_blocks * 512);
+
+    for (i, chunk) in data.chunks(UF2_PAYLOAD_SIZE).enumerate() {
+        let mut block = [0u8; 512];
+        let addr = base_addr + (i * UF2_PAYLOAD_SIZE) as u32;
+
+        // Header
+        block[0..4].copy_from_slice(&UF2_MAGIC0.to_le_bytes());
+        block[4..8].copy_from_slice(&UF2_MAGIC1.to_le_bytes());
+        block[8..12].copy_from_slice(&UF2_FLAG_FAMILY.to_le_bytes());
+        block[12..16].copy_from_slice(&addr.to_le_bytes());
+        block[16..20].copy_from_slice(&(UF2_PAYLOAD_SIZE as u32).to_le_bytes());
+        block[20..24].copy_from_slice(&(i as u32).to_le_bytes());
+        block[24..28].copy_from_slice(&(num_blocks as u32).to_le_bytes());
+        block[28..32].copy_from_slice(&RP2040_FAMILY_ID.to_le_bytes());
+
+        // Payload (256 bytes, zero-padded for short final chunk)
+        block[32..32 + chunk.len()].copy_from_slice(chunk);
+
+        // Final magic
+        block[508..512].copy_from_slice(&UF2_MAGIC_END.to_le_bytes());
+
+        uf2.extend_from_slice(&block);
+    }
+    uf2
+}
+
+// ── Combine ──────────────────────────────────────────────────────────────────
+
+/// Application offset within the combined binary (matches ACTIVE partition
+/// start relative to flash base: 0x10007000 - 0x10000000 = 0x7000).
+const APP_FLASH_OFFSET: usize = 0x7000;
+const FLASH_BASE: u32 = 0x10000000;
+
+fn combine(_sh: &Shell, root: &Path) -> Result<()> {
     eprintln!("→ Combining bootloader + application…");
+
     let bl_elf = bootloader_elf(root);
     let app_elf = application_elf(root);
-    let bl_bin = root.join("build/bootloader.bin");
-    let app_bin = root.join("build/application.bin");
-    let combined_bin = root.join("build/combined.bin");
-    let combined = combined_uf2(root);
-    let script = root.join("scripts/combine_binaries.py");
 
-    cmd!(
-        sh,
-        "python3 {script} {bl_elf} {app_elf} {bl_bin} {app_bin} {combined_bin} {combined}"
-    )
-    .run()?;
-    eprintln!("  ✓ {}", combined.display());
+    // Parse ELF files into flat binaries relative to flash base
+    let bl_bin = elf_to_binary(&bl_elf, FLASH_BASE).with_context(|| "parsing bootloader ELF")?;
+    let app_bin = elf_to_binary(&app_elf, FLASH_BASE).with_context(|| "parsing application ELF")?;
+
+    // Application binary starts at flash offset 0x7000.
+    // Verify the bootloader doesn't extend into the application region.
+    if bl_bin.len() > APP_FLASH_OFFSET {
+        bail!(
+            "bootloader binary ({} bytes) exceeds application offset ({:#x})",
+            bl_bin.len(),
+            APP_FLASH_OFFSET
+        );
+    }
+
+    // Build combined flat binary
+    let combined_size = APP_FLASH_OFFSET + app_bin.len();
+    let mut combined = vec![0xFFu8; combined_size];
+    combined[..bl_bin.len()].copy_from_slice(&bl_bin);
+    combined[APP_FLASH_OFFSET..].copy_from_slice(&app_bin);
+
+    eprintln!("  Bootloader: {} bytes at offset 0x0", bl_bin.len());
+    eprintln!(
+        "  Application: {} bytes at offset {:#x}",
+        app_bin.len(),
+        APP_FLASH_OFFSET
+    );
+    eprintln!("  Combined: {} bytes total", combined_size);
+
+    // Convert to UF2 and write
+    let uf2_data = binary_to_uf2(&combined, FLASH_BASE);
+    let uf2_path = combined_uf2(root);
+    std::fs::write(&uf2_path, &uf2_data)
+        .with_context(|| format!("writing {}", uf2_path.display()))?;
+
+    eprintln!(
+        "  ✓ {} ({} UF2 blocks, {:.1} KiB)",
+        uf2_path.display(),
+        uf2_data.len() / 512,
+        uf2_data.len() as f64 / 1024.0
+    );
     Ok(())
 }
 
@@ -559,7 +705,6 @@ fn main() -> Result<()> {
             let mut ok = true;
             ok &= check_tool("elf2uf2-rs", "cargo install elf2uf2-rs");
             ok &= check_tool("flip-link", "cargo install flip-link");
-            ok &= check_tool("python3", "install Python 3 from https://python.org");
             // probe-rs is optional
             check_tool("probe-rs", "cargo install probe-rs-tools");
             if ok {
