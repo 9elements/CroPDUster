@@ -102,7 +102,7 @@ jobs:
         with:
           ref: ${{ matrix.commit }}
       - name: Install flip-link
-        run: cargo install flip-link
+        run: cargo install --locked flip-link
       - uses: Swatinem/rust-cache@v2
         with:
           key: clippy-embedded
