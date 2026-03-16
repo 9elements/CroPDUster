@@ -62,10 +62,16 @@ impl MethodHandlerService<(), ()> for FirmwareUpdateService {
         let conn = body_connection.finalize().await?;
 
         match result {
-            Ok(()) => (StatusCode::OK, "{\"ok\":true}").write_to(conn, response_writer).await,
-            Err(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg)
-                .write_to(conn, response_writer)
-                .await,
+            Ok(()) => {
+                (StatusCode::OK, "{\"ok\":true}")
+                    .write_to(conn, response_writer)
+                    .await
+            }
+            Err(msg) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, msg)
+                    .write_to(conn, response_writer)
+                    .await
+            }
         }
     }
 }
@@ -117,7 +123,10 @@ async fn write_firmware_streaming<'r, R: Read>(
         remaining -= chunk_size;
     }
 
-    updater.mark_updated().await.map_err(|_| "Mark update error")?;
+    updater
+        .mark_updated()
+        .await
+        .map_err(|_| "Mark update error")?;
 
     embassy_time::Timer::after_millis(100).await;
     cortex_m::peripheral::SCB::sys_reset();

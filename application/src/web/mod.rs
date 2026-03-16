@@ -7,8 +7,8 @@ pub mod status;
 pub mod update;
 
 use picoserve::routing::{delete, get, parse_path_segment, post};
-use update::FirmwareUpdateService;
 use picoserve::{AppWithStateBuilder, Router};
+use update::FirmwareUpdateService;
 
 use crate::storage::PduDatabase;
 
@@ -21,8 +21,7 @@ use crate::storage::PduDatabase;
 ///
 /// Stored as `usize` (pointer-as-integer) in a `portable_atomic::AtomicUsize`
 /// so the static is `Sync` without needing unsafe.
-static DB_PTR: portable_atomic::AtomicUsize =
-    portable_atomic::AtomicUsize::new(0);
+static DB_PTR: portable_atomic::AtomicUsize = portable_atomic::AtomicUsize::new(0);
 
 /// Initialise the module-level DB handle. Call exactly once before spawning web tasks.
 pub fn init_db(db: &'static PduDatabase) {

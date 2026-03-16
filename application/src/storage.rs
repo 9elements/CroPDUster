@@ -7,10 +7,10 @@
 //! from the embassy-sync 0.7.x used elsewhere. We alias embassy-sync 0.6.x as
 //! `embassy_sync_ekv` in Cargo.toml and use its RawMutex for the Database type.
 
-use embassy_rp::flash::{Async as FlashAsync, Flash};
-use embassy_sync_ekv::blocking_mutex::raw::CriticalSectionRawMutex;
 use ekv::flash::PageID;
 use ekv::{Config, Database};
+use embassy_rp::flash::{Async as FlashAsync, Flash};
+use embassy_sync_ekv::blocking_mutex::raw::CriticalSectionRawMutex;
 use embedded_storage_async::nor_flash::NorFlash;
 use static_cell::StaticCell;
 
@@ -57,12 +57,8 @@ impl<'d> ekv::flash::Flash for PduFlash<'d> {
         data: &mut [u8],
     ) -> Result<(), Self::Error> {
         let flash_offset = Self::page_offset(page_id) + offset as u32;
-        embedded_storage_async::nor_flash::ReadNorFlash::read(
-            &mut self.flash,
-            flash_offset,
-            data,
-        )
-        .await
+        embedded_storage_async::nor_flash::ReadNorFlash::read(&mut self.flash, flash_offset, data)
+            .await
     }
 
     async fn write(
