@@ -9,10 +9,11 @@ use crate::sensors::SENSOR_DATA;
 pub struct SensorsResponse {
     pub temperature_c: f32,
     pub voltage_v: f32,
-    pub current_a: [f32; 8],
+    pub current_total_a: f32,
+    pub power_w: f32,
 }
 
-/// `GET /api/sensors` — returns temperature, voltage, and per-port current stubs.
+/// `GET /api/sensors` — returns temperature, mains voltage, total current, and active power.
 pub async fn handle_sensors() -> Json<SensorsResponse> {
     let data = {
         let guard = SENSOR_DATA.lock().await;
@@ -21,6 +22,7 @@ pub async fn handle_sensors() -> Json<SensorsResponse> {
     Json(SensorsResponse {
         temperature_c: data.temperature_c,
         voltage_v: data.voltage_v,
-        current_a: data.current_a,
+        current_total_a: data.current_total_a,
+        power_w: data.power_w,
     })
 }
