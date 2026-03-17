@@ -31,6 +31,23 @@ pub const PIN_RELAY_7: u8 = 7;
 pub const PIN_LED: u8 = 25;
 pub const PIN_FACTORY_RESET: u8 = 26;
 
+// HLW8012 power monitor (PIO0, SM0=CF, SM1=CF1)
+pub const PIN_HLW_CF: u8 = 8; // CF  — active-power pulse input
+pub const PIN_HLW_CF1: u8 = 9; // CF1 — current/voltage RMS pulse input
+pub const PIN_HLW_SEL: u8 = 10; // SEL — output: LOW=current mode, HIGH=voltage mode
+
+// HLW8012 circuit calibration
+// v_ratio = (R_upstream + R_downstream) / R_downstream
+// Datasheet §3.1 example: 4×470 kΩ upstream + 1 kΩ downstream → (1880+1)/1 = 1881
+pub const HLW8012_R_SENSE: f32 = 0.001; // 1 mΩ current shunt [Ω]
+pub const HLW8012_V_RATIO: f32 = 1881.0; // voltage divider ratio (dimensionless)
+                                         // Minimum wait after toggling SEL before CF1 readings stabilise.
+                                         // 2 s is the empirical minimum; matches the Arduino reference library default.
+pub const HLW8012_SEL_SETTLE_MS: u64 = 2_000;
+// Treat readings as zero if no pulse arrives within this window.
+// At 0.1 % of rated full-scale the period is ~5 s; 10 s gives comfortable margin.
+pub const HLW8012_PULSE_TIMEOUT_MS: u64 = 10_000;
+
 // W5500 SPI0
 pub const PIN_MISO: u8 = 16;
 pub const PIN_CS: u8 = 17;
