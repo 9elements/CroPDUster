@@ -5,10 +5,23 @@
 # Only audit the dependency graph for the embedded target.
 # The host-only xtask crate does not run on the device.
 targets = ["thumbv6m-none-eabi"]
+# Exclude xtask entirely: it is a host-only build helper that never runs on
+# the device and brings in host-only transitive deps (ureq, webpki-roots)
+# whose licenses (CDLA-Permissive-2.0) are irrelevant to the firmware.
+exclude = ["xtask"]
 
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
+
+[[advisories.ignore]]
+# paste 1.0.15 is flagged as unmaintained (RUSTSEC-2024-0436).  It is a
+# transitive build-time dependency pulled in by pio-core → pio → embassy-rp
+# and cannot be replaced without an upstream change in pio-core.  The crate
+# itself has no security vulnerability — it is archived due to the author
+# considering it complete.
+id = "RUSTSEC-2024-0436"
+reason = "Transitive dep via pio-core; no security impact. Awaiting upstream migration in pio-core."
 
 [licenses]
 allow = [
@@ -21,6 +34,8 @@ allow = [
     "Unicode-DFS-2016",
     # cc crate
     "MPL-2.0",
+    # managed + smoltcp (transitive deps of embassy-net)
+    "0BSD",
 ]
 confidence-threshold = 0.8
 
