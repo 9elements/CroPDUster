@@ -5,7 +5,10 @@ use picoserve::response::{Json, StatusCode};
 use serde::{Deserialize, Serialize};
 
 use crate::auth::{hash_password, AdminUser, AuthUser};
-use crate::storage::{port_name_key, seed_defaults, user_admin_key, user_ports_key, user_pw_key};
+use crate::storage::{
+    port_name_key, seed_defaults, user_admin_key, user_ports_key, user_pw_key,
+    KEY_ADMIN_FIRST_LOGIN,
+};
 
 // ── Response types ─────────────────────────────────────────────────────────────
 
@@ -103,6 +106,13 @@ pub async fn handle_password_change(
     }
     let new_hash = hash_password(body.new.as_str());
     let mut wtx = db.write_transaction().await;
+    // Clear the first-login flag when an admin changes their password.
+    // ekv requires lexicographic key order: "admin/first_login" < "u/…/pw" ✓
+    if user.is_admin {
+        wtx.write(KEY_ADMIN_FIRST_LOGIN, b"0")
+            .await
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Write error"))?;
+    }
     wtx.write(&pw_key, &new_hash)
         .await
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Write error"))?;
