@@ -11,6 +11,7 @@
 mod auth;
 mod config;
 mod gpio;
+mod hlw8012;
 mod sensors;
 mod storage;
 mod web;
@@ -28,6 +29,7 @@ use embassy_rp::dma;
 use embassy_rp::flash::{Async as FlashAsync, Flash};
 use embassy_rp::gpio::{Input, Level, Output, Pull};
 use embassy_rp::peripherals::SPI0;
+use embassy_rp::pio::Pio;
 use embassy_rp::spi::{Async, Config as SpiConfig, Spi};
 use embassy_rp::watchdog::Watchdog;
 use embassy_time::{Duration, Timer};
@@ -39,8 +41,12 @@ use panic_reset as _;
 use picoserve::AppWithStateBuilder;
 use static_cell::StaticCell;
 
-use config::{FLASH_SIZE, SPI_FREQ_HZ};
+use config::{
+    FLASH_SIZE, HLW8012_PULSE_TIMEOUT_MS, HLW8012_R_SENSE, HLW8012_SEL_SETTLE_MS, HLW8012_V_RATIO,
+    SPI_FREQ_HZ,
+};
 use gpio::gpio_task;
+use hlw8012::{Hlw8012Config, Hlw8012Driver};
 use sensors::sensor_task;
 use storage::init_database;
 use web::{web_task, App, CONFIG, WEB_TASK_POOL_SIZE};
@@ -54,6 +60,8 @@ bind_interrupts!(struct Irqs {
     DMA_IRQ_0 => dma::InterruptHandler<embassy_rp::peripherals::DMA_CH0>,
                  dma::InterruptHandler<embassy_rp::peripherals::DMA_CH1>,
                  dma::InterruptHandler<embassy_rp::peripherals::DMA_CH2>;
+    // PIO0 — HLW8012 pulse-period measurement (SM0=CF, SM1=CF1)
+    PIO0_IRQ_0 => embassy_rp::pio::InterruptHandler<embassy_rp::peripherals::PIO0>;
 });
 
 // ── Ethernet task ──────────────────────────────────────────────────────────────
@@ -189,21 +197,44 @@ async fn main(spawner: Spawner) {
     let ip = stack.config_v4().unwrap().address;
     info!("IP address: {}", ip);
 
-    // 11. Spawn sensor task (ADC + internal temperature sensor)
+    // 11. Init PIO0 for HLW8012 pulse-period measurement
+    //     SM0 measures CF  (active power), SM1 measures CF1 (current/voltage).
+    let Pio {
+        mut common,
+        sm0,
+        sm1,
+        ..
+    } = Pio::new(p.PIO0, Irqs);
+    let hlw = Hlw8012Driver::new(
+        &mut common,
+        sm0,
+        sm1,
+        p.PIN_8,                           // CF  — active-power pulse input
+        p.PIN_9,                           // CF1 — current/voltage RMS pulse input
+        Output::new(p.PIN_10, Level::Low), // SEL — LOW = current mode (startup default)
+        Hlw8012Config {
+            r_sense: HLW8012_R_SENSE,
+            v_ratio: HLW8012_V_RATIO,
+            timeout_ms: HLW8012_PULSE_TIMEOUT_MS,
+            sel_settle_ms: HLW8012_SEL_SETTLE_MS,
+        },
+    );
+
+    // 12. Spawn sensor task (ADC + internal temperature + HLW8012)
     let adc = Adc::new(p.ADC, Irqs, AdcConfig::default());
     let ts_channel = Channel::new_temp_sensor(p.ADC_TEMP_SENSOR);
-    spawner.spawn(sensor_task(adc, ts_channel).unwrap());
+    spawner.spawn(sensor_task(adc, ts_channel, hlw).unwrap());
 
-    // 12. Build picoserve app (stateless — auth + DB access via module-level statics)
+    // 13. Build picoserve app (stateless — auth + DB access via module-level statics)
     static APP: StaticCell<picoserve::AppRouter<App>> = StaticCell::new();
     let app = APP.init(App.build_app());
 
-    // 13. Spawn 4× web_task
+    // 14. Spawn 4× web_task
     for id in 0..WEB_TASK_POOL_SIZE {
         spawner.spawn(web_task(id, stack, app, &CONFIG).unwrap());
     }
 
-    // 14. LED blink ready signal
+    // 15. LED blink ready signal
     let mut led = Output::new(p.PIN_25, Level::Low);
     for _ in 0..3 {
         led.set_high();
