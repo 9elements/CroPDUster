@@ -120,16 +120,16 @@ async fn main(spawner: Spawner) {
     // Register DB with the web layer (all handlers access it via crate::web::db())
     web::init_db(db);
 
-    // 4. GPIO outputs for 8 relay outputs (PIN_0 – PIN_7)
+    // 4. GPIO outputs for 8 relay outputs (PIN_2 – PIN_9)
     let relay_pins = [
-        Output::new(p.PIN_0, Level::Low),
-        Output::new(p.PIN_1, Level::Low),
         Output::new(p.PIN_2, Level::Low),
         Output::new(p.PIN_3, Level::Low),
         Output::new(p.PIN_4, Level::Low),
         Output::new(p.PIN_5, Level::Low),
         Output::new(p.PIN_6, Level::Low),
         Output::new(p.PIN_7, Level::Low),
+        Output::new(p.PIN_8, Level::Low),
+        Output::new(p.PIN_9, Level::Low),
     ];
 
     // 6. Spawn GPIO task
@@ -209,9 +209,9 @@ async fn main(spawner: Spawner) {
         &mut common,
         sm0,
         sm1,
-        p.PIN_8,                           // CF  — active-power pulse input
-        p.PIN_9,                           // CF1 — current/voltage RMS pulse input
-        Output::new(p.PIN_10, Level::Low), // SEL — LOW = current mode (startup default)
+        p.PIN_0,                           // CF  — active-power pulse input
+        p.PIN_1,                           // CF1 — current/voltage RMS pulse input
+        Output::new(p.PIN_22, Level::Low), // SEL — LOW = current mode (startup default)
         Hlw8012Config {
             r_sense: HLW8012_R_SENSE,
             v_ratio: HLW8012_V_RATIO,
