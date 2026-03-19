@@ -12,13 +12,13 @@ cortex-m-rt = "0.7.5"
 critical-section = "1.2.0"
 defmt = "1"
 defmt-rtt = "1"
-embassy-executor = { version = "0.9.1", features = ["arch-cortex-m", "executor-thread", "executor-interrupt", "nightly"] }
+embassy-executor = { version = "0.10.0", features = ["platform-cortex-m", "executor-thread", "executor-interrupt", "nightly"] }
 embassy-futures = "0.1.2"
-embassy-rp = { version = "0.9.0", features = ["unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
-embassy-sync = "0.7.2"
+embassy-rp = { version = "0.10.0", features = ["unstable-pac", "time-driver", "critical-section-impl", "rp2040"] }
+embassy-sync = "0.8.0"
 embassy-time = "0.5.0"
-embassy-net = { version = "0.8.0", features = ["defmt", "tcp", "dhcpv4", "medium-ethernet", "dns", "proto-ipv4"] }
-embassy-boot-rp = { version = "0.9.0" }
+embassy-net = { version = "0.9.0", features = ["defmt", "tcp", "dhcpv4", "medium-ethernet", "dns", "proto-ipv4"] }
+embassy-boot-rp = { version = "0.10.0" }
 embedded-hal = "1.0.0"
 embedded-hal-async = "1.0.0"
 embedded-io-async = { version = "0.7", features = ["defmt"] }
@@ -34,16 +34,16 @@ sha2        = { version = "0.10", default-features = false }
 serde       = { version = "1.0", default-features = false, features = ["derive"] }
 
 [patch.crates-io]
-embassy-executor     = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-futures      = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-rp           = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-sync         = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-time         = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-net          = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-boot         = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-boot-rp      = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-net-wiznet   = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
-embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "3651d8ef249dc20d30df7382237f2451d889c011" }
+embassy-executor     = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-futures      = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-rp           = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-sync         = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-time         = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-net          = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-boot         = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-boot-rp      = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-net-wiznet   = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
+embassy-embedded-hal = { git = "https://github.com/embassy-rs/embassy", rev = "400921c5fe6f3e6079eca06f0ee4a0d1be7bec29" }
 
 [profile.release]
 debug = true
