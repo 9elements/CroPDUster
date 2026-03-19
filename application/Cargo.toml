@@ -7,15 +7,15 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
-embassy-sync = { version = "0.7.2", features = ["defmt"] }
-embassy-executor = { version = "0.9.0", features = ["arch-cortex-m", "executor-thread", "defmt"] }
-embassy-time = { version = "0.5.0", features = [] }
-embassy-rp = { version = "0.9.0", features = ["time-driver", "rp2040", "critical-section-impl", "defmt"] }
-embassy-boot-rp = { version = "0.9.0", features = ["defmt"] }
-embassy-embedded-hal = { version = "0.5.0" }
-embassy-futures = { version = "0.1.2" }
-embassy-net = { version = "0.8.0", features = ["defmt", "tcp", "dhcpv4", "medium-ethernet", "dns", "proto-ipv4"] }
-embassy-net-wiznet = { version = "0.2.1", features = ["defmt"] }
+embassy-sync = { workspace = true, features = ["defmt"] }
+embassy-executor = { workspace = true, features = ["platform-cortex-m", "executor-thread", "defmt"] }
+embassy-time = { workspace = true, features = [] }
+embassy-rp = { workspace = true, features = ["time-driver", "rp2040", "critical-section-impl", "defmt"] }
+embassy-boot-rp = { workspace = true, features = ["defmt"] }
+embassy-embedded-hal = { version = "0.6.0" }
+embassy-futures = { workspace = true }
+embassy-net = { workspace = true, features = ["defmt", "tcp", "dhcpv4", "medium-ethernet", "dns", "proto-ipv4"] }
+embassy-net-wiznet = { version = "0.3.0", features = ["defmt"] }
 
 picoserve     = { version = "0.18", features = ["embassy", "json", "defmt"] }
 ekv           = { version = "1.0", features = ["defmt", "page-size-4096", "max-page-count-64", "erase-value-255", "max-key-size-64", "max-value-size-256", "max-chunk-size-512"] }
