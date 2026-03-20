@@ -23,11 +23,18 @@ enum Command {
         /// Build only the application
         #[arg(long)]
         application: bool,
+        /// Build the application for the WIZnet W6100 instead of W5500
+        #[arg(long)]
+        w6100: bool,
     },
     /// Combine bootloader + application ELFs into build/combined.uf2
     Combine,
     /// Build everything and produce the combined UF2 (build + combine)
-    Dist,
+    Dist {
+        /// Build the application for the WIZnet W6100 instead of W5500
+        #[arg(long)]
+        w6100: bool,
+    },
     /// Flash firmware to the device
     Flash {
         /// Flash only the bootloader
@@ -36,6 +43,9 @@ enum Command {
         /// Flash only the application
         #[arg(long)]
         application: bool,
+        /// Build the application for the WIZnet W6100 instead of W5500
+        #[arg(long)]
+        w6100: bool,
         /// Use probe-rs instead of UF2 drag-and-drop (attaches RTT for live logging)
         #[arg(long)]
         probe: bool,
@@ -112,13 +122,17 @@ fn build_bootloader(sh: &Shell, root: &Path) -> Result<()> {
     Ok(())
 }
 
-fn build_application(sh: &Shell, root: &Path) -> Result<()> {
+fn build_application(sh: &Shell, root: &Path, w6100: bool) -> Result<()> {
     eprintln!("→ Building application…");
     let build_dir = build_dir(root);
     std::fs::create_dir_all(&build_dir)?;
 
     let _dir = sh.push_dir(root.join("application"));
-    cmd!(sh, "cargo build --release").run()?;
+    if w6100 {
+        cmd!(sh, "cargo build --release --features w6100").run()?;
+    } else {
+        cmd!(sh, "cargo build --release").run()?;
+    }
 
     let src = root.join("target/thumbv6m-none-eabi/release/pdu-rp-application");
     let dst = application_elf(root);
@@ -135,16 +149,24 @@ fn build_application(sh: &Shell, root: &Path) -> Result<()> {
 /// Build the application with the `debug` feature (panic-probe + full defmt RTT logging).
 /// The resulting ELF is stored separately as `build/application-debug.elf` so it
 /// doesn't overwrite the production UF2 artefacts.
-fn build_application_debug(sh: &Shell, root: &Path) -> Result<()> {
+fn build_application_debug(sh: &Shell, root: &Path, w6100: bool) -> Result<()> {
     eprintln!("→ Building application (debug / probe-rs)…");
     std::fs::create_dir_all(build_dir(root))?;
 
     let _dir = sh.push_dir(root.join("application"));
-    cmd!(
-        sh,
-        "cargo build --release --no-default-features --features debug"
-    )
-    .run()?;
+    if w6100 {
+        cmd!(
+            sh,
+            "cargo build --release --no-default-features --features debug,w6100"
+        )
+        .run()?;
+    } else {
+        cmd!(
+            sh,
+            "cargo build --release --no-default-features --features debug"
+        )
+        .run()?;
+    }
 
     let src = root.join("target/thumbv6m-none-eabi/release/pdu-rp-application");
     let dst = application_debug_elf(root);
@@ -559,13 +581,14 @@ fn main() -> Result<()> {
         Command::Build {
             bootloader,
             application,
+            w6100,
         } => {
             let both = !bootloader && !application;
             if both || bootloader {
                 build_bootloader(&sh, &root)?;
             }
             if both || application {
-                build_application(&sh, &root)?;
+                build_application(&sh, &root, w6100)?;
             }
         }
 
@@ -573,15 +596,16 @@ fn main() -> Result<()> {
             combine(&sh, &root)?;
         }
 
-        Command::Dist => {
+        Command::Dist { w6100 } => {
             build_bootloader(&sh, &root)?;
-            build_application(&sh, &root)?;
+            build_application(&sh, &root, w6100)?;
             combine(&sh, &root)?;
         }
 
         Command::Flash {
             bootloader,
             application,
+            w6100,
             probe,
             debug,
             ota,
@@ -595,7 +619,7 @@ fn main() -> Result<()> {
                 let uf2 = application_uf2(&root);
                 if !uf2.exists() {
                     eprintln!("Application UF2 not found — building first…");
-                    build_application(&sh, &root)?;
+                    build_application(&sh, &root, w6100)?;
                 }
                 flash_ota(&uf2, ip)?;
             } else if probe {
@@ -610,9 +634,9 @@ fn main() -> Result<()> {
                 };
                 let build_app = |sh: &Shell, root: &Path| {
                     if use_debug_build {
-                        build_application_debug(sh, root)
+                        build_application_debug(sh, root, w6100)
                     } else {
-                        build_application(sh, root)
+                        build_application(sh, root, w6100)
                     }
                 };
 
@@ -677,7 +701,7 @@ fn main() -> Result<()> {
                     let uf2 = combined_uf2(&root);
                     if !uf2.exists() {
                         build_bootloader(&sh, &root)?;
-                        build_application(&sh, &root)?;
+                        build_application(&sh, &root, w6100)?;
                         combine(&sh, &root)?;
                     }
                     flash_uf2(&uf2)?;
@@ -692,7 +716,7 @@ fn main() -> Result<()> {
                     if application {
                         let uf2 = application_uf2(&root);
                         if !uf2.exists() {
-                            build_application(&sh, &root)?;
+                            build_application(&sh, &root, w6100)?;
                         }
                         flash_uf2(&uf2)?;
                     }

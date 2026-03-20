@@ -20,7 +20,10 @@ use defmt::*;
 use defmt_rtt as _;
 use embassy_executor::Spawner;
 use embassy_net::StackResources;
+#[cfg(not(feature = "w6100"))]
 use embassy_net_wiznet::chip::W5500;
+#[cfg(feature = "w6100")]
+use embassy_net_wiznet::chip::W6100;
 use embassy_net_wiznet::*;
 use embassy_rp::adc::{Adc, Channel, Config as AdcConfig};
 use embassy_rp::bind_interrupts;
@@ -67,9 +70,20 @@ bind_interrupts!(struct Irqs {
 // ── Ethernet task ──────────────────────────────────────────────────────────────
 
 /// Type alias for the W5500 runner to avoid repeating the full generic signature.
+#[cfg(not(feature = "w6100"))]
 type EthernetRunner = Runner<
     'static,
     W5500,
+    ExclusiveDevice<Spi<'static, SPI0, Async>, Output<'static>, embassy_time::Delay>,
+    Input<'static>,
+    Output<'static>,
+>;
+
+/// Type alias for the W6100 runner to avoid repeating the full generic signature.
+#[cfg(feature = "w6100")]
+type EthernetRunner = Runner<
+    'static,
+    W6100,
     ExclusiveDevice<Spi<'static, SPI0, Async>, Output<'static>, embassy_time::Delay>,
     Input<'static>,
     Output<'static>,
@@ -135,7 +149,7 @@ async fn main(spawner: Spawner) {
     // 6. Spawn GPIO task
     spawner.spawn(gpio_task(relay_pins).unwrap());
 
-    // 7. Init W5500 Ethernet (SPI0, DMA_CH0 TX, DMA_CH1 RX)
+    // 7. Init Ethernet (SPI0, DMA_CH0 TX, DMA_CH1 RX)
     let mut spi_cfg = SpiConfig::default();
     spi_cfg.frequency = SPI_FREQ_HZ;
     let spi = Spi::new(
@@ -145,18 +159,18 @@ async fn main(spawner: Spawner) {
         p.DMA_CH0, p.DMA_CH1, Irqs, spi_cfg,
     );
     let cs = Output::new(p.PIN_17, Level::High);
-    let w5500_int = Input::new(p.PIN_21, Pull::Up);
-    let w5500_reset = Output::new(p.PIN_20, Level::High);
+    let eth_int = Input::new(p.PIN_21, Pull::Up);
+    let eth_reset = Output::new(p.PIN_20, Level::High);
 
     let mac_addr = [0x02, 0x00, 0x00, 0x00, 0x00, 0x01];
-    static W5500_STATE: StaticCell<embassy_net_wiznet::State<8, 8>> = StaticCell::new();
-    let state = W5500_STATE.init(embassy_net_wiznet::State::<8, 8>::new());
+    static ETH_STATE: StaticCell<embassy_net_wiznet::State<8, 8>> = StaticCell::new();
+    let state = ETH_STATE.init(embassy_net_wiznet::State::<8, 8>::new());
     let (device, runner) = embassy_net_wiznet::new(
         mac_addr,
         state,
         ExclusiveDevice::new(spi, cs, embassy_time::Delay),
-        w5500_int,
-        w5500_reset,
+        eth_int,
+        eth_reset,
     )
     .await
     .unwrap();
