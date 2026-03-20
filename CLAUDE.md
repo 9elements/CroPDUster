@@ -20,14 +20,18 @@ The bootloader enables safe over-the-air firmware updates by maintaining separat
 cargo xtask build
 
 # Build individual components
-cargo xtask build --bootloader    # Build bootloader only
-cargo xtask build --application   # Build main PDU controller application
+cargo xtask build --bootloader            # Build bootloader only
+cargo xtask build --application           # Build main PDU controller application
+cargo xtask build --application --w6100   # Build main PDU controller application for WIZnet W6100
 
 # Produce combined UF2 (build + combine)
 cargo xtask dist
+# Produce combined UF2 (build + combine) for WIZnet W6100 variant
+cargo xtask dist --w6100
 
 # Flash to device
 cargo xtask flash                         # Flash combined UF2 via BOOTSEL drag-and-drop
+cargo xtask flash --w6100                 # Flash combined UF2 via BOOTSEL drag-and-drop (for WIZnet W6100)
 cargo xtask flash --bootloader            # Flash bootloader only
 cargo xtask flash --application           # Flash application only
 cargo xtask flash --probe                 # Flash via probe-rs with RTT logging (recommended for dev)
@@ -67,7 +71,7 @@ All build outputs are placed in the `build/` directory:
 
 ## Hardware Configuration
 
-### W5500 Ethernet Module (SPI)
+### W5500/W6100 Ethernet Module (SPI)
 - MISO: GPIO 16
 - MOSI: GPIO 19
 - CLK: GPIO 18
@@ -165,7 +169,7 @@ Hard faults trigger system reset to retry boot.
 ### Application Structure
 
 The application uses Embassy async runtime with multiple concurrent tasks:
-- **ethernet_task**: Manages W5500 hardware and link layer
+- **ethernet_task**: Manages W5500/W6100 hardware and link layer
 - **net_task**: Runs the embassy-net network stack (TCP/IP, DHCP)
 - **gpio_task**: Handles GPIO control commands via Signal primitive (8 pins)
 - **sensor_task**: Reads RP2040 internal ADC temperature every 5s
@@ -206,7 +210,7 @@ The `archive/` directory contains the original PIC18-based firmware tooling (Mak
 Application dependencies:
 - `embassy-executor`: Async task executor
 - `embassy-net`: Network stack with DHCP support
-- `embassy-net-wiznet`: Driver for W5500 Ethernet chip
+- `embassy-net-wiznet`: Driver for W5500/W6100 Ethernet chip
 - `embassy-rp`: RP2040 HAL with flash support
 - `embassy-boot-rp`: Bootloader and firmware updater
 - `embassy-embedded-hal`: Async adapters for blocking peripherals

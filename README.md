@@ -6,7 +6,7 @@ Raspberry Pi Pico (RP2040), replacing the original PIC18-based firmware.
 ## Features
 
 - 8 relay-controlled power outlets (GPIO 0-7)
-- W5500 Ethernet with DHCP
+- W5500 or W6100 Ethernet with DHCP
 - HTTP server with single-page web UI
 - REST API for GPIO control, sensors, user management
 - HTTP Basic Auth with multi-user support and per-port ACL

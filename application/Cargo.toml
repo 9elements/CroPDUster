@@ -45,6 +45,8 @@ heapless = "0.8"
 default = ["panic-reset"]
 debug = ["panic-probe"]
 skip-include = []
+# Select the WIZnet W6100, defaults to W5500 if not enabled
+w6100 = []
 
 # 'panic-reset' and 'panic-probe' are mutually exclusive.
 # Build with --no-default-features --features debug to use panic-probe.
