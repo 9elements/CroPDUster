@@ -70,8 +70,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: firmware-${{ matrix.commit }}
-          path: build/
-|
+          path: |
             build/combined.uf2
             build/application.uf2
             build/bootloader.uf2
