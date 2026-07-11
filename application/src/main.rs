@@ -101,6 +101,22 @@ async fn net_task(mut runner: embassy_net::Runner<'static, Device<'static>>) -> 
     runner.run().await
 }
 
+fn mac_address_from_flash(
+    flash: &mut Flash<'static, embassy_rp::peripherals::FLASH, FlashAsync, FLASH_SIZE>,
+) -> [u8; 6] {
+    use sha2::{Digest, Sha256};
+
+    let mut uid = [0u8; 8];
+    flash.blocking_unique_id(&mut uid).unwrap();
+
+    let mut hasher = Sha256::new();
+    hasher.update(b"CroPDUster MAC");
+    hasher.update(uid);
+    let digest = hasher.finalize();
+
+    [0x02, digest[0], digest[1], digest[2], digest[3], digest[4]]
+}
+
 // ── Main ───────────────────────────────────────────────────────────────────────
 
 #[embassy_executor::main]
@@ -121,7 +137,8 @@ async fn main(spawner: Spawner) {
     drop(factory_reset_pin);
 
     // 3. Init flash → ekv database (async flash using DMA_CH2)
-    let flash: Flash<'static, _, FlashAsync, FLASH_SIZE> = Flash::new(p.FLASH, p.DMA_CH2, Irqs);
+    let mut flash: Flash<'static, _, FlashAsync, FLASH_SIZE> = Flash::new(p.FLASH, p.DMA_CH2, Irqs);
+    let mac_addr = mac_address_from_flash(&mut flash);
     let random_seed_u32 = rng.next_u32();
     let db = init_database(flash, random_seed_u32).await;
 
@@ -162,7 +179,6 @@ async fn main(spawner: Spawner) {
     let eth_int = Input::new(p.PIN_21, Pull::Up);
     let eth_reset = Output::new(p.PIN_20, Level::High);
 
-    let mac_addr = [0x02, 0x00, 0x00, 0x00, 0x00, 0x01];
     static ETH_STATE: StaticCell<embassy_net_wiznet::State<8, 8>> = StaticCell::new();
     let state = ETH_STATE.init(embassy_net_wiznet::State::<8, 8>::new());
     let (device, runner) = embassy_net_wiznet::new(
