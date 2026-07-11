@@ -526,27 +526,22 @@ fn flash_ota(uf2_path: &Path, ip: &str) -> Result<()> {
         .with_context(|| format!("parsing UF2 {}", uf2_path.display()))?;
 
     let result = ureq::post(&url)
-        .set("Authorization", &auth)
-        .set("Content-Type", "application/octet-stream")
-        .send_bytes(&data);
+        .header("Authorization", &auth)
+        .content_type("application/octet-stream")
+        .send(&data);
 
     match result {
-        Ok(response) => {
+        Ok(mut response) => {
             let status = response.status();
-            if status == 200 {
+            if status.as_u16() == 200 {
                 eprintln!("  OTA upload complete — device is rebooting");
                 Ok(())
             } else {
-                let body = response.into_string().unwrap_or_default();
+                let body = response.body_mut().read_to_string().unwrap_or_default();
                 bail!("OTA failed: HTTP {} — {}", status, body)
             }
         }
-        Err(ureq::Error::Transport(t))
-            if t.kind() == ureq::ErrorKind::ConnectionFailed
-                || t.message()
-                    .map(|m| m.contains("Connection reset") || m.contains("os error 104"))
-                    .unwrap_or(false) =>
-        {
+        Err(e) if is_expected_ota_reset(&e) => {
             // Device reset the TCP connection immediately after accepting the
             // firmware write — this is expected when sys_reset() fires before
             // the HTTP response is fully flushed.
@@ -554,6 +549,20 @@ fn flash_ota(uf2_path: &Path, ip: &str) -> Result<()> {
             Ok(())
         }
         Err(e) => bail!("OTA request failed: {}", e),
+    }
+}
+
+fn is_expected_ota_reset(error: &ureq::Error) -> bool {
+    match error {
+        ureq::Error::ConnectionFailed => true,
+        ureq::Error::Io(error) => matches!(
+            error.kind(),
+            std::io::ErrorKind::ConnectionReset
+                | std::io::ErrorKind::ConnectionAborted
+                | std::io::ErrorKind::BrokenPipe
+                | std::io::ErrorKind::UnexpectedEof
+        ),
+        _ => false,
     }
 }
 

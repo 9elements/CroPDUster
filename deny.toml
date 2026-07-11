@@ -23,6 +23,18 @@ db-urls = ["https://github.com/rustsec/advisory-db"]
 id = "RUSTSEC-2024-0436"
 reason = "Transitive dep via pio-core; no security impact. Awaiting upstream migration in pio-core."
 
+[[advisories.ignore]]
+# bare-metal 0.2.5 is pulled in by cortex-m 0.7.7, which is still the current
+# cortex-m release. It is deprecated but has no reported vulnerability.
+id = "RUSTSEC-2026-0110"
+reason = "Transitive dep via current cortex-m; deprecated only. Awaiting cortex-m migration to critical-section."
+
+[[advisories.ignore]]
+# proc-macro-error2 2.0.1 is a build-time transitive dependency of pio-proc,
+# pulled in by pio → embassy-rp. It does not ship in firmware.
+id = "RUSTSEC-2026-0173"
+reason = "Build-time transitive dep via pio-proc; no runtime firmware exposure. Awaiting upstream migration."
+
 [licenses]
 allow = [
     "MIT",
@@ -46,7 +58,3 @@ wildcards = "allow"
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"
-allow-git = [
-    "https://github.com/embassy-rs/embassy",
-    "https://github.com/smoltcp-rs/smoltcp",
-]
